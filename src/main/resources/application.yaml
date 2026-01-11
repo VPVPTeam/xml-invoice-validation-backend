@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: XML Invoice Validation Backend
