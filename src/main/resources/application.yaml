@@ -1,3 +1,9 @@
 spring:
   application:
     name: XML Invoice Validation Backend
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/xml_invoice_validation_backend_db
+    username: postgres
+    password: postgres
