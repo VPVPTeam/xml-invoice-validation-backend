@@ -2,12 +2,11 @@ package com.vpvpteam.xmlinvoicevalidationbackend.canonical;
 import jakarta.annotation.Nullable;
 
 public class Address {
-    private String countryCode;
-    private String addressLine1;
-    private @Nullable String addressLine2;
-//    private String street;
-//    private String buildingNumber;
-//    private String apartmentNumber;   // nullable
-//    private String city;
-//    private String postalCode;
+    // Mandatory fields
+    private String countryCode; // PodmiotX / Adres / KodKraju
+    private String addressLine1; // PodmiotX / Adres / AdresL1
+
+    // Optional fields
+    @Nullable
+    private String addressLine2; // PodmiotX / Adres / AdresL2
 }

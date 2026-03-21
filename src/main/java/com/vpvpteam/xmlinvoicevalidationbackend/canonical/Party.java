@@ -1,7 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.canonical;
 
 public class Party {
-    private String taxId;
-    private String name;
-    private Address address;   // nullable w MVP
+    private String taxId; // PodmiotX / DaneIdentyfikacyjne / NIP
+    private String name; // PodmiotX / DaneIdentyfikacyjne / Nazwa
+    private Address address; // PodmiotX / Adres
 }
