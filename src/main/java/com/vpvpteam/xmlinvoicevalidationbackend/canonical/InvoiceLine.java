@@ -1,6 +1,11 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.canonical;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
+@Getter
+@Setter
 public class InvoiceLine {
     private int lineNumber; // Fa / FaWiersz / NrWierszaFa
     private String productName; // Fa / FaWiersz / P_7

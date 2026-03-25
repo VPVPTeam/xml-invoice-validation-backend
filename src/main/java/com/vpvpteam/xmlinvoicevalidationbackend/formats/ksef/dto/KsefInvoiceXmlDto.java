@@ -7,6 +7,11 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.math.BigDecimal;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JacksonXmlRootElement(localName = "Faktura")
 public class KsefInvoiceXmlDto {
     @JacksonXmlProperty(localName = "Podmiot1")
@@ -20,18 +25,28 @@ public class KsefInvoiceXmlDto {
     private InvoiceBody invoiceBody;
 
     // Party (seller / buyer / third party)
+    @Getter
+    @Setter
     public static class Party {
         @JacksonXmlProperty(localName = "DaneIdentyfikacyjne")
         private IdentificationData identificationData;
         @JacksonXmlProperty(localName = "Adres")
         private Address address;
     }
+
+    // IdentificationData
+    @Getter
+    @Setter
     public static class IdentificationData {
         @JacksonXmlProperty(localName = "NIP")
         private String taxId;
         @JacksonXmlProperty(localName = "Nazwa")
         private String name;
     }
+
+    // Address
+    @Getter
+    @Setter
     public static class Address {
         @JacksonXmlProperty(localName = "KodKraju")
         private String countryCode;
@@ -43,6 +58,8 @@ public class KsefInvoiceXmlDto {
     }
 
     // Invoice body
+    @Getter
+    @Setter
     public static class InvoiceBody {
         @JacksonXmlProperty(localName = "KodWaluty")
         private String currencyCode;
@@ -64,6 +81,8 @@ public class KsefInvoiceXmlDto {
     }
 
     // Invoice line
+    @Getter
+    @Setter
     public static class InvoiceLine {
         @JacksonXmlProperty(localName = "NrWierszaFa")
         private int lineNumber;

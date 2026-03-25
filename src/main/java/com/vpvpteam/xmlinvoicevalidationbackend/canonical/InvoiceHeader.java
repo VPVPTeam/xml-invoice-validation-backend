@@ -1,8 +1,10 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.canonical;
 import jakarta.annotation.Nullable;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.time.LocalDate;
-
+@Getter
+@Setter
 public class InvoiceHeader {
     // Mandatory fields
     private String invoiceNumber; // Fa / P_2
