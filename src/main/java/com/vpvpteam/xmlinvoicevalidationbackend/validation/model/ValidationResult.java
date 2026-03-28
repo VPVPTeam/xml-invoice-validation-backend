@@ -1,4 +1,5 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,11 +11,12 @@ import java.util.List;
 @NoArgsConstructor
 public class ValidationResult {
     private String batchId; // ID загрузки/пакета
-    private String status; // "OK", "WARNING", "ERROR", "PARTIAL"
+
+    private Severity status; // "OK", "WARNING", "ERROR"
     // Список поставщиков, которые встретились в batch (например NIP)
-    private List<String> vendorIds = new ArrayList<>();
+    private List<String> listOfVendorIds = new ArrayList<>();
     // Список invoiceId для дедупликации: sellerTaxId + "|" + invoiceNumber
-    private List<String> invoiceIds = new ArrayList<>();
+    private List<String> listOfInvoiceIds = new ArrayList<>();
     // Все найденные проблемы по batch
     private List<ValidationIssue> issues = new ArrayList<>();
     // Полезные агрегаты
@@ -25,9 +27,9 @@ public class ValidationResult {
     private OffsetDateTime createdAt = OffsetDateTime.now();
     
     public ValidationResult(String batchId,
-                            String status,
-                            List<String> vendorIds,
-                            List<String> invoiceIds,
+                            Severity status,
+                            List<String> listOfVendorIds,
+                            List<String> listOfInvoiceIds,
                             List<ValidationIssue> issues,
                             int totalInvoices,
                             int validInvoices,
@@ -36,8 +38,8 @@ public class ValidationResult {
                             OffsetDateTime createdAt) {
         this.batchId = batchId;
         this.status = status;
-        this.vendorIds = vendorIds == null ? new ArrayList<>() : new ArrayList<>(vendorIds);
-        this.invoiceIds = invoiceIds == null ? new ArrayList<>() : new ArrayList<>(invoiceIds);
+        this.listOfVendorIds = listOfVendorIds == null ? new ArrayList<>() : new ArrayList<>(listOfVendorIds);
+        this.listOfInvoiceIds = listOfInvoiceIds == null ? new ArrayList<>() : new ArrayList<>(listOfInvoiceIds);
         this.issues = issues == null ? new ArrayList<>() : new ArrayList<>(issues);
         this.totalInvoices = totalInvoices;
         this.validInvoices = validInvoices;
