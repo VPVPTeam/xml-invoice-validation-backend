@@ -1,60 +1,81 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
-import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceParser;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationResult;
-import org.springframework.beans.factory.annotation.Value;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidator;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ValidationService {
-    private static final String UNKNOWN = "UNKNOWN";
-    private final KsefInvoiceParser parser;
-    private final KsefInvoiceMapper mapper;
 
-    public ValidationService(KsefInvoiceParser parser, KsefInvoiceMapper mapper) {
+    private static final String UNKNOWN = "UNKNOWN";
+
+    private final KsefInvoiceParser parser;
+    private final TechnicalValidator technicalValidator;
+
+    public ValidationService(KsefInvoiceParser parser, TechnicalValidator technicalValidator) {
         this.parser = parser;
-        this.mapper = mapper;
+        this.technicalValidator = technicalValidator;
     }
 
     /**
      * Batch validation:
-     * - парсинг XML -> DTO
-     * - маппинг DTO -> CanonicalInvoice (technical validation)
-     * - формирование ValidationResult + ValidationIssue
+     * 1) parse XML -> DTO
+     * 2) technicalValidator.validate(dto) (он уже внутри может вызвать mapper)
+     * 3) собираем общий ValidationResult по batch
      */
     public ValidationResult validateBatch(List<InputStream> xmlInputs, String batchId) {
         ValidationResult result = new ValidationResult();
         result.setBatchId(batchId);
-        List<ValidationIssue> issues = new ArrayList<>();
+
+        List<ValidationIssue> allIssues = new ArrayList<>();
         Set<String> vendorIds = new LinkedHashSet<>();
         Set<String> invoiceIds = new LinkedHashSet<>();
 
-        // для дублей внутри одного batch
+        // Нужно для определения дублей внутри одного batch
         Set<String> seenInCurrentBatch = new HashSet<>();
-        for (int i = 0; i < xmlInputs.size(); i++) {
-            InputStream xmlInput = xmlInputs.get(i);
+
+        if (xmlInputs == null || xmlInputs.isEmpty()) {
+            // Пустой batch -> техническая ошибка
+            allIssues.add(buildTechnicalIssue(
+                    "UNKNOWN|UNKNOWN",
+                    UNKNOWN,
+                    UNKNOWN,
+                    Severity.ERROR,
+                    "TECH_EMPTY_BATCH",
+                    "batch",
+                    "Batch has no XML files to validate"
+            ));
+
+            result.setListOfVendorIds(List.of());
+            result.setListOfInvoiceIds(List.of());
+            result.setIssues(allIssues);
+            result.setStatus(resolveStatus(allIssues));
+            return result;
+        }
+
+        for (InputStream xmlInput: xmlInputs) {
+            // 1) Parsing
             KsefInvoiceXmlDto dto;
             try {
                 dto = parser.parse(xmlInput);
             } catch (Exception ex) {
-                issues.add(buildTechnicalIssue(
-                        UNKNOWN,
+                allIssues.add(buildTechnicalIssue(
+                        "UNKNOWN|UNKNOWN",
                         UNKNOWN,
                         UNKNOWN,
                         Severity.ERROR,
+                        "TECH_XML_PARSE_ERROR",
                         "xml",
-                        "Cannot parse XML: " + safeMessage(ex),
-                        ""
+                        "Cannot parse XML: " + safeMessage(ex)
                 ));
                 continue;
             }
@@ -62,12 +83,15 @@ public class ValidationService {
             String sellerTaxId = extractSellerTaxId(dto);
             String invoiceNumber = extractInvoiceNumber(dto);
             String invoiceId = buildInvoiceId(sellerTaxId, invoiceNumber);
+
+            // FIXME: vendorIds.add(sellerTaxId) - нужен ли
             vendorIds.add(sellerTaxId);
             invoiceIds.add(invoiceId);
 
-            // Дубль в рамках текущего batch (warning)
+            // 2) Duplicate check in current batch (warning)
+            // Это не останавливает техническую валидацию
             if (!seenInCurrentBatch.add(invoiceId)) {
-                issues.add(buildBusinessIssue(
+                allIssues.add(buildBusinessIssue(
                         invoiceId,
                         sellerTaxId,
                         invoiceNumber,
@@ -76,55 +100,43 @@ public class ValidationService {
                         "invoiceId",
                         "Duplicate invoice in the same batch"
                 ));
-                // не прерываем, продолжаем technical validation
             }
 
-            // Техническая валидация = попытка создать CanonicalInvoice
-            try {
-                CanonicalInvoice canonicalInvoice = mapper.toCanonical(dto);
-                if (canonicalInvoice == null) {
-                    issues.add(buildTechnicalIssue(
-                            invoiceId,
-                            sellerTaxId,
-                            invoiceNumber,
-                            Severity.ERROR,
-                            "TECH_CANONICAL_MAPPING_FAILED",
-                            "canonicalInvoice",
-                            "CanonicalInvoice is null after mapping"
-                    ));
-                }
-            } catch (Exception ex) {
-                String fieldPath = tryExtractFieldPath(ex);
-                issues.add(buildTechnicalIssue(
-                        invoiceId,
-                        sellerTaxId,
-                        invoiceNumber,
-                        Severity.ERROR,
-                        "TECH_CANONICAL_MAPPING_FAILED",
-                        fieldPath,
-                        "Cannot create CanonicalInvoice: " + safeMessage(ex)
-                ));
+            // 3) Technical validation:
+            // Важно: теперь сервис НЕ вызывает mapper напрямую.
+            // Это ответственность TechnicalValidator.
+            TechnicalValidationOutput techOutput = technicalValidator.validate(dto);
+            if (techOutput.getIssues() != null && !techOutput.getIssues().isEmpty()) {
+                allIssues.addAll(techOutput.getIssues());
             }
         }
 
         result.setListOfVendorIds(new ArrayList<>(vendorIds));
         result.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
-        result.setIssues(issues);
-        result.setStatus(resolveStatus(issues));
-        // здесь подключите репозиторий, когда он появится:
-        // validationResultRepository.save(result);
+        result.setIssues(allIssues);
+        result.setStatus(resolveStatus(allIssues));
 
-        // {PRINT: validationresult}
         return result;
-
     }
 
+    /**
+     * Статус по вашим правилам:
+     * - no issues -> OK
+     * - есть хотя бы один ERROR -> ERROR
+     * - иначе (есть WARNING) -> WARNING
+     */
     private Severity resolveStatus(List<ValidationIssue> issues) {
         if (issues == null || issues.isEmpty()) {
             return Severity.OK;
-        } else {
-            return Severity.ISSUE;
         }
+
+        boolean hasError = issues.stream().anyMatch(i -> i.getSeverity() == Severity.ERROR);
+        if (hasError) {
+            return Severity.ERROR;
+        }
+
+        boolean hasWarning = issues.stream().anyMatch(i -> i.getSeverity() == Severity.WARNING);
+        return hasWarning ? Severity.WARNING : Severity.OK;
     }
 
     private ValidationIssue buildTechnicalIssue(
@@ -142,7 +154,6 @@ public class ValidationService {
         issue.setStage(ValidationStage.TECHNICAL);
         issue.setRuleKey(ruleKey);
         issue.setFieldPath(fieldPath);
-        // Формат, который вы просили
         issue.setMessage(String.format(
                 "%s | %s | %s | Technical validation failed: field '%s' is missing/invalid or cannot be read. %s (rule: %s)",
                 severity, sellerTaxId, invoiceNumber, fieldPath, details, ruleKey
@@ -191,18 +202,7 @@ public class ValidationService {
     }
 
     private String buildInvoiceId(String sellerTaxId, String invoiceNumber) {
-        // можно без разделителя, но с "|" безопаснее для последующего разбора
         return sellerTaxId + "|" + invoiceNumber;
-    }
-
-    private String tryExtractFieldPath(Exception ex) {
-        String msg = safeMessage(ex);
-        // если mapper кидает "Missing required field: Fa.P_2", вытащим путь:
-        String prefix = "Missing required field:";
-        if (msg.startsWith(prefix)) {
-            return msg.substring(prefix.length()).trim();
-        }
-        return "canonicalInvoice";
     }
 
     private String safeMessage(Exception ex) {
