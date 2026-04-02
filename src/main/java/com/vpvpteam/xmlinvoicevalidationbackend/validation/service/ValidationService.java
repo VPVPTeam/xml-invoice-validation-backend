@@ -41,7 +41,7 @@ public class ValidationService {
         Set<String> invoiceIds = new LinkedHashSet<>();
 
         // Нужно для определения дублей внутри одного batch
-        Set<String> seenInCurrentBatch = new HashSet<>();
+        Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
         if (xmlInputs == null || xmlInputs.isEmpty()) {
             // Пустой batch -> техническая ошибка
@@ -90,7 +90,7 @@ public class ValidationService {
 
             // 2) Duplicate check in current batch (warning)
             // Это не останавливает техническую валидацию
-            if (!seenInCurrentBatch.add(invoiceId)) {
+            if (!seenInvoiceIdsInBatch.add(invoiceId)) {
                 allIssues.add(buildBusinessIssue(
                         invoiceId,
                         sellerTaxId,
