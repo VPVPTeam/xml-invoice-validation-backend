@@ -81,7 +81,6 @@ public class KsefTechnicalValidator implements TechnicalValidator {
         checkRequired(lines != null && !lines.isEmpty(), "Fa.FaWiersz", invoiceId, sellerTaxId, invoiceNumber, issues);
         if (lines == null) return;
 
-        // FIXME: String p = "Fa.FaWiersz[" + i + "]";
         for (int i = 0; i < lines.size(); i++) {
             KsefInvoiceXmlDto.InvoiceLine line = lines.get(i);
             String p = "Fa.FaWiersz[" + i + "]";
@@ -89,13 +88,17 @@ public class KsefTechnicalValidator implements TechnicalValidator {
             checkRequired(line != null, p, invoiceId, sellerTaxId, invoiceNumber, issues);
             if (line == null) continue;
 
-            checkRequired(line.getLineNumber() > 0, p + ".NrWierszaFa", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(line.getProductName()), p + ".P_7", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(line.getUnitOfMeasure()), p + ".P_8A", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getQuantity() != null, p + ".P_8B", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getUnitNetPrice() != null, p + ".P_9A", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getNetValue() != null, p + ".P_11", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getTaxRate() != null, p + ".P_12", invoiceId, sellerTaxId, invoiceNumber, issues);
+            String linePath = line.getLineNumber() > 0
+                    ? p + "(NrWierszaFa=" + line.getLineNumber() + ")"
+                    : p;
+
+            checkRequired(line.getLineNumber() > 0, linePath + ".NrWierszaFa", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(line.getProductName()), linePath + ".P_7", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(line.getUnitOfMeasure()), linePath + ".P_8A", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getQuantity() != null, linePath + ".P_8B", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getUnitNetPrice() != null, linePath + ".P_9A", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getNetValue() != null, linePath + ".P_11", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getTaxRate() != null, linePath + ".P_12", invoiceId, sellerTaxId, invoiceNumber, issues);
         }
     }
 
