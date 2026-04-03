@@ -45,14 +45,15 @@ public class ValidationService {
 
         if (xmlInputs == null || xmlInputs.isEmpty()) {
             // Пустой batch -> техническая ошибка
-            allIssues.add(buildTechnicalIssue(
-                    "UNKNOWN|UNKNOWN",
-                    UNKNOWN,
-                    UNKNOWN,
+            allIssues.add(ValidationIssue.buildIssue(
+                    "UNKNOWN",
+                    "UNKNOWN",
+                    ValidationStage.TECHNICAL,
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
                     "batch",
-                    "Batch has no XML files to validate"
+                    // FIXME: Это details, нужно вставить подходящий message
+                    "Batch has no XML files to validate" // DETAILS
             ));
 
             result.setListOfVendorIds(List.of());
@@ -65,24 +66,26 @@ public class ValidationService {
         for (InputStream xmlInput: xmlInputs) {
             // 1) Parsing
             KsefInvoiceXmlDto dto;
+
             try {
                 dto = parser.parse(xmlInput);
             } catch (Exception ex) {
-                allIssues.add(buildTechnicalIssue(
-                        "UNKNOWN|UNKNOWN",
-                        UNKNOWN,
-                        UNKNOWN,
+                allIssues.add(ValidationIssue.buildIssue(
+                        "UNKNOWN",
+                        "UNKNOWN",
+                        ValidationStage.TECHNICAL,
                         Severity.ERROR,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
-                        "Cannot parse XML: " + safeMessage(ex)
+                        // FIXME: Это details, нужно вставить подходящий message
+                        "Cannot parse XML: " + safeMessage(ex) // DETAILS
                 ));
                 continue;
             }
 
             String sellerTaxId = extractSellerTaxId(dto);
             String invoiceNumber = extractInvoiceNumber(dto);
-            String invoiceId = buildInvoiceId(sellerTaxId, invoiceNumber);
+            String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
             // FIXME: vendorIds.add(sellerTaxId) - нужен ли
             vendorIds.add(sellerTaxId);
@@ -91,14 +94,15 @@ public class ValidationService {
             // 2) Duplicate check in current batch (warning)
             // Это не останавливает техническую валидацию
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
-                allIssues.add(buildBusinessIssue(
-                        invoiceId,
-                        sellerTaxId,
+                allIssues.add(ValidationIssue.buildIssue(
                         invoiceNumber,
+                        sellerTaxId,
+                        ValidationStage.BUSINESS,
                         Severity.WARNING,
                         "BIZ_DUPLICATE_IN_BATCH",
                         "invoiceId",
-                        "Duplicate invoice in the same batch"
+                        // FIXME: Это details, нужно вставить подходящий message
+                        "Duplicate invoice in the same batch" // DETAILS
                 ));
             }
 
@@ -139,50 +143,6 @@ public class ValidationService {
         return hasWarning ? Severity.WARNING : Severity.OK;
     }
 
-    private ValidationIssue buildTechnicalIssue(
-            String invoiceId,
-            String sellerTaxId,
-            String invoiceNumber,
-            Severity severity,
-            String ruleKey,
-            String fieldPath,
-            String details
-    ) {
-        ValidationIssue issue = new ValidationIssue();
-        issue.setInvoiceId(invoiceId);
-        issue.setSeverity(severity);
-        issue.setStage(ValidationStage.TECHNICAL);
-        issue.setRuleKey(ruleKey);
-        issue.setFieldPath(fieldPath);
-        issue.setMessage(String.format(
-                "%s | %s | %s | Technical validation failed: field '%s' is missing/invalid or cannot be read. %s (rule: %s)",
-                severity, sellerTaxId, invoiceNumber, fieldPath, details, ruleKey
-        ));
-        return issue;
-    }
-
-    private ValidationIssue buildBusinessIssue(
-            String invoiceId,
-            String sellerTaxId,
-            String invoiceNumber,
-            Severity severity,
-            String ruleKey,
-            String fieldPath,
-            String details
-    ) {
-        ValidationIssue issue = new ValidationIssue();
-        issue.setInvoiceId(invoiceId);
-        issue.setSeverity(severity);
-        issue.setStage(ValidationStage.BUSINESS);
-        issue.setRuleKey(ruleKey);
-        issue.setFieldPath(fieldPath);
-        issue.setMessage(String.format(
-                "%s | %s | %s | Field '%s' violates business rule. %s (rule: %s)",
-                severity, sellerTaxId, invoiceNumber, fieldPath, details, ruleKey
-        ));
-        return issue;
-    }
-
     private String extractSellerTaxId(KsefInvoiceXmlDto dto) {
         try {
             String taxId = dto.getSeller().getIdentificationData().getTaxId();
@@ -199,10 +159,6 @@ public class ValidationService {
         } catch (Exception ex) {
             return UNKNOWN;
         }
-    }
-
-    private String buildInvoiceId(String sellerTaxId, String invoiceNumber) {
-        return sellerTaxId + "|" + invoiceNumber;
     }
 
     private String safeMessage(Exception ex) {

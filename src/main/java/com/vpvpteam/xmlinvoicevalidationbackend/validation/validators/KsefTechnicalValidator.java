@@ -46,12 +46,14 @@ public class KsefTechnicalValidator implements TechnicalValidator {
             CanonicalInvoice canonicalInvoice = mapper.toCanonical(dto);
             return new TechnicalValidationOutput(canonicalInvoice, issues);
         } catch (Exception ex) {
-            issues.add(buildTechnicalError(
-                    invoiceId,
-                    sellerTaxId,
+            issues.add(ValidationIssue.buildIssue(
                     invoiceNumber,
+                    sellerTaxId,
+                    ValidationStage.TECHNICAL,
+                    Severity.ERROR,
                     "canonicalInvoice",
                     "TECH_CANONICAL_MAPPING_FAILED",
+                    // FIXME: Это message, нужно вставить подходящий message
                     "ERROR | " + sellerTaxId + " | " + invoiceNumber
                             + " | Technical validation failed: cannot create CanonicalInvoice. "
                             + ex.getClass().getSimpleName() + ": " + ex.getMessage()
@@ -130,32 +132,18 @@ public class KsefTechnicalValidator implements TechnicalValidator {
                                String invoiceNumber,
                                List<ValidationIssue> issues) {
         if (!condition) {
-            issues.add(buildTechnicalError(
-                    invoiceId,
-                    sellerTaxId,
+            issues.add(ValidationIssue.buildIssue(
                     invoiceNumber,
-                    fieldPath,
+                    sellerTaxId,
+                    ValidationStage.TECHNICAL,
+                    Severity.ERROR,
                     "TECH_MISSING_REQUIRED_FIELD",
+                    fieldPath,
+                    // FIXME: Это message, нужно вставить подходящий message
                     "ERROR | " + sellerTaxId + " | " + invoiceNumber
                             + " | Technical validation failed: field '" + fieldPath + "' is missing or invalid."
             ));
         }
-    }
-
-    private ValidationIssue buildTechnicalError(String invoiceId,
-                                                String sellerTaxId,
-                                                String invoiceNumber,
-                                                String fieldPath,
-                                                String ruleKey,
-                                                String message) {
-        ValidationIssue issue = new ValidationIssue();
-        issue.setInvoiceId(invoiceId);
-        issue.setSeverity(Severity.ERROR);
-        issue.setStage(ValidationStage.TECHNICAL);
-        issue.setRuleKey(ruleKey);
-        issue.setFieldPath(fieldPath);
-        issue.setMessage(message);
-        return issue;
     }
 
     private String safeSellerTaxId(KsefInvoiceXmlDto dto) {
