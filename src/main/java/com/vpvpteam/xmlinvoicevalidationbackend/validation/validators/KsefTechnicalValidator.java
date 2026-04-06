@@ -26,14 +26,13 @@ public class KsefTechnicalValidator implements TechnicalValidator {
 
         String sellerTaxId = safeSellerTaxId(dto);
         String invoiceNumber = safeInvoiceNumber(dto);
-        String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
-        checkRequired(dto != null, "Faktura", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(dto != null, "Faktura", sellerTaxId, invoiceNumber, issues);
 
         if (dto != null) {
-            validateParty(dto.getSeller(), "Podmiot1", invoiceId, sellerTaxId, invoiceNumber, issues);
-            validateParty(dto.getBuyer(), "Podmiot2", invoiceId, sellerTaxId, invoiceNumber, issues);
-            validateBody(dto.getInvoiceBody(), invoiceId, sellerTaxId, invoiceNumber, issues);
+            validateParty(dto.getSeller(), "Podmiot1", sellerTaxId, invoiceNumber, issues);
+            validateParty(dto.getBuyer(), "Podmiot2", sellerTaxId, invoiceNumber, issues);
+            validateBody(dto.getInvoiceBody(), sellerTaxId, invoiceNumber, issues);
         }
 
         // Если уже есть ERROR — не идём в маппинг
@@ -51,83 +50,77 @@ public class KsefTechnicalValidator implements TechnicalValidator {
                     sellerTaxId,
                     ValidationStage.TECHNICAL,
                     Severity.ERROR,
-                    "canonicalInvoice",
                     "TECH_CANONICAL_MAPPING_FAILED",
-                    // FIXME: Это message, нужно вставить подходящий message
-                    "ERROR | " + sellerTaxId + " | " + invoiceNumber
-                            + " | Technical validation failed: cannot create CanonicalInvoice. "
-                            + ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                    "canonicalInvoice",
+                    ValidationIssue.messageKsefCanonicalMappingFailed(sellerTaxId, invoiceNumber, ex)
             ));
             return TechnicalValidationOutput.failure(issues);
         }
     }
 
     private void validateBody(KsefInvoiceXmlDto.InvoiceBody body,
-                              String invoiceId,
                               String sellerTaxId,
                               String invoiceNumber,
                               List<ValidationIssue> issues) {
-        checkRequired(body != null, "Fa", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(body != null, "Fa", sellerTaxId, invoiceNumber, issues);
         if (body == null) return;
 
-        checkRequired(notBlank(body.getInvoiceNumber()), "Fa.P_2", invoiceId, sellerTaxId, invoiceNumber, issues);
-        checkRequired(notBlank(body.getIssueDate()), "Fa.P_1", invoiceId, sellerTaxId, invoiceNumber, issues);
-        checkRequired(notBlank(body.getSaleDate()), "Fa.P_6", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(notBlank(body.getInvoiceNumber()), "Fa.P_2", sellerTaxId, invoiceNumber, issues);
+        checkRequired(notBlank(body.getIssueDate()), "Fa.P_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(notBlank(body.getSaleDate()), "Fa.P_6", sellerTaxId, invoiceNumber, issues);
 
-        checkRequired(notBlank(body.getCurrencyCode()), "Fa.KodWaluty", invoiceId, sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalNet() != null, "Fa.P_13_1", invoiceId, sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalTax() != null, "Fa.P_14_1", invoiceId, sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalGross() != null, "Fa.P_15", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(notBlank(body.getCurrencyCode()), "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalNet() != null, "Fa.P_13_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalTax() != null, "Fa.P_14_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalGross() != null, "Fa.P_15", sellerTaxId, invoiceNumber, issues);
 
         List<KsefInvoiceXmlDto.InvoiceLine> lines = body.getLines();
-        checkRequired(lines != null && !lines.isEmpty(), "Fa.FaWiersz", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(lines != null && !lines.isEmpty(), "Fa.FaWiersz", sellerTaxId, invoiceNumber, issues);
         if (lines == null) return;
 
-        // FIXME: String p = "Fa.FaWiersz[" + i + "]";
+        // FIXME: String p = "Fa.FaWiersz[" + i + "]"; ГЛЯЕМ ПОТОМ, КОГДА БУДЕМ ВАЛИДИРОВАТЬ ЕСТЬ ЛИ ПОЛЯ "10", "20"... ИТД
         for (int i = 0; i < lines.size(); i++) {
             KsefInvoiceXmlDto.InvoiceLine line = lines.get(i);
             String p = "Fa.FaWiersz[" + i + "]";
 
-            checkRequired(line != null, p, invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line != null, p, sellerTaxId, invoiceNumber, issues);
             if (line == null) continue;
 
-            checkRequired(line.getLineNumber() > 0, p + ".NrWierszaFa", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(line.getProductName()), p + ".P_7", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(line.getUnitOfMeasure()), p + ".P_8A", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getQuantity() != null, p + ".P_8B", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getUnitNetPrice() != null, p + ".P_9A", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getNetValue() != null, p + ".P_11", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getTaxRate() != null, p + ".P_12", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getLineNumber() > 0, p + ".NrWierszaFa", sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(line.getProductName()), p + ".P_7", sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(line.getUnitOfMeasure()), p + ".P_8A", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getQuantity() != null, p + ".P_8B", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getUnitNetPrice() != null, p + ".P_9A", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getNetValue() != null, p + ".P_11", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getTaxRate() != null, p + ".P_12", sellerTaxId, invoiceNumber, issues);
         }
     }
 
     private void validateParty(KsefInvoiceXmlDto.Party party,
                                String basePath,
-                               String invoiceId,
                                String sellerTaxId,
                                String invoiceNumber,
                                List<ValidationIssue> issues) {
-        checkRequired(party != null, basePath, invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(party != null, basePath, sellerTaxId, invoiceNumber, issues);
         if (party == null) return;
 
         KsefInvoiceXmlDto.IdentificationData id = party.getIdentificationData();
-        checkRequired(id != null, basePath + ".DaneIdentyfikacyjne", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(id != null, basePath + ".DaneIdentyfikacyjne", sellerTaxId, invoiceNumber, issues);
         if (id != null) {
-            checkRequired(notBlank(id.getTaxId()), basePath + ".DaneIdentyfikacyjne.NIP", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(id.getName()), basePath + ".DaneIdentyfikacyjne.Nazwa", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(id.getTaxId()), basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(id.getName()), basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
         }
 
         KsefInvoiceXmlDto.Address address = party.getAddress();
-        checkRequired(address != null, basePath + ".Adres", invoiceId, sellerTaxId, invoiceNumber, issues);
+        checkRequired(address != null, basePath + ".Adres", sellerTaxId, invoiceNumber, issues);
         if (address != null) {
-            checkRequired(notBlank(address.getCountryCode()), basePath + ".Adres.KodKraju", invoiceId, sellerTaxId, invoiceNumber, issues);
-            checkRequired(notBlank(address.getAddressLine1()), basePath + ".Adres.AdresL1", invoiceId, sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(address.getCountryCode()), basePath + ".Adres.KodKraju", sellerTaxId, invoiceNumber, issues);
+            checkRequired(notBlank(address.getAddressLine1()), basePath + ".Adres.AdresL1", sellerTaxId, invoiceNumber, issues);
         }
     }
 
     private void checkRequired(boolean condition,
                                String fieldPath,
-                               String invoiceId,
                                String sellerTaxId,
                                String invoiceNumber,
                                List<ValidationIssue> issues) {
@@ -139,9 +132,7 @@ public class KsefTechnicalValidator implements TechnicalValidator {
                     Severity.ERROR,
                     "TECH_MISSING_REQUIRED_FIELD",
                     fieldPath,
-                    // FIXME: Это message, нужно вставить подходящий message
-                    "ERROR | " + sellerTaxId + " | " + invoiceNumber
-                            + " | Technical validation failed: field '" + fieldPath + "' is missing or invalid."
+                    ValidationIssue.messageKsefMissingRequiredField(sellerTaxId, invoiceNumber, fieldPath)
             ));
         }
     }

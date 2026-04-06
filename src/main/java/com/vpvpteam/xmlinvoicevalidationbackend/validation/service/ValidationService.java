@@ -52,8 +52,7 @@ public class ValidationService {
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
                     "batch",
-                    // FIXME: Это details, нужно вставить подходящий message
-                    "Batch has no XML files to validate" // DETAILS
+                    ValidationIssue.messageTechEmptyBatch()
             ));
 
             result.setListOfVendorIds(List.of());
@@ -77,8 +76,7 @@ public class ValidationService {
                         Severity.ERROR,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
-                        // FIXME: Это details, нужно вставить подходящий message
-                        "Cannot parse XML: " + safeMessage(ex) // DETAILS
+                        ValidationIssue.messageTechXmlParseError(ex)
                 ));
                 continue;
             }
@@ -87,7 +85,6 @@ public class ValidationService {
             String invoiceNumber = extractInvoiceNumber(dto);
             String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
-            // FIXME: vendorIds.add(sellerTaxId) - нужен ли
             vendorIds.add(sellerTaxId);
             invoiceIds.add(invoiceId);
 
@@ -99,10 +96,9 @@ public class ValidationService {
                         sellerTaxId,
                         ValidationStage.BUSINESS,
                         Severity.WARNING,
-                        "BIZ_DUPLICATE_IN_BATCH",
+                        "DUPLICATE_IN_BATCH",
                         "invoiceId",
-                        // FIXME: Это details, нужно вставить подходящий message
-                        "Duplicate invoice in the same batch" // DETAILS
+                        ValidationIssue.messageDuplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
             }
 

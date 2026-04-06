@@ -41,32 +41,47 @@ public class ValidationIssue {
         return issue;
     }
 
-    // 1) Для ValidationService: TECHNICAL
-    public String serviceTechnicalMessage() {
-        return String.format(
-                "%s | %s | %s | Technical validation failed: field '%s' is missing/invalid or cannot be read. %s (rule: %s)",
-                severity, sellerTaxId, invoiceNumber, fieldPath, details, ruleKey
-        );
+    public static String messageTechEmptyBatch() {
+        return "ERROR\n" +
+                "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
+                "Technical validation failed: batch is missing/invalid or cannot be read.\n" +
+                "Batch has no XML files to validate (rule: TECH_EMPTY_BATCH)";
     }
 
-    // 2) Для ValidationService: BUSINESS
-    public String serviceBusinessMessage() {
-        return String.format(
-                "%s | %s | %s | Field '%s' violates business rule. %s (rule: %s)",
-                severity, sellerTaxId, invoiceNumber, fieldPath, details, ruleKey
-        );
+    public static String messageTechXmlParseError(Exception ex) {
+        String exMsg = (ex == null || ex.getMessage() == null || ex.getMessage().isBlank())
+                ? (ex == null ? "UnknownException" : ex.getClass().getSimpleName())
+                : ex.getMessage();
+
+        return "ERROR\n" +
+                "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
+                "Technical validation failed: field 'xml' is missing/invalid or cannot be read.\n" +
+                "Cannot parse XML: " + exMsg + " (rule: TECH_XML_PARSE_ERROR)";
     }
 
-    // 3) Для KsefTechnicalValidator: missing required field
-    public String ksefMissingRequiredFieldMessage() {
-        return "ERROR | " + sellerTaxId + " | " + invoiceNumber
-                + " | Technical validation failed: field '" + fieldPath + "' is missing or invalid.";
+    public static String messageDuplicateInBatch(String sellerTaxId, String invoiceNumber) {
+        return "WARNING\n" +
+                "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                "\nDuplicate invoice in the same batch (rule: DUPLICATE_IN_BATCH)";
     }
 
-    // 4) Для KsefTechnicalValidator: canonical mapping failed
-    public String ksefCanonicalMappingFailedMessage() {
-        return "ERROR | " + sellerTaxId + " | " + invoiceNumber
-                + " | Technical validation failed: cannot create CanonicalInvoice. "
-                + ex.getClass().getSimpleName() + ": " + ex.getMessage();
+    public static String messageKsefMissingRequiredField(String sellerTaxId,
+                                                         String invoiceNumber,
+                                                         String fieldPath) {
+        return "ERROR\n" +
+                "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                "\nTechnical validation failed: field '" + fieldPath + "' is missing or invalid.";
+    }
+
+    public static String messageKsefCanonicalMappingFailed(String sellerTaxId,
+                                                           String invoiceNumber,
+                                                           Exception ex) {
+        String exMsg = (ex == null || ex.getMessage() == null || ex.getMessage().isBlank())
+                ? (ex == null ? "UnknownException" : ex.getClass().getSimpleName())
+                : ex.getClass().getSimpleName() + ": " + ex.getMessage();
+
+        return "ERROR\n" +
+                "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                "\nTechnical validation failed: cannot create CanonicalInvoice. " + exMsg;
     }
 }
