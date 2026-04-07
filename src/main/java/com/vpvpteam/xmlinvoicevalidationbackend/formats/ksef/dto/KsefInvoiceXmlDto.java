@@ -10,6 +10,10 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * This class is just a Java copy of the KSeF XML structure.
+ * We parse XML into this DTO first, then map it to our internal model.
+ */
 @Getter
 @Setter
 @JacksonXmlRootElement(localName = "Faktura")
@@ -21,10 +25,16 @@ public class KsefInvoiceXmlDto {
     @JacksonXmlProperty(localName = "Podmiot3")
     @Nullable
     private Party thirdParty;
+
+    /**
+     * Main invoice body (Fa) with dates, totals and invoice lines.
+     */
     @JacksonXmlProperty(localName = "Fa")
     private InvoiceBody invoiceBody;
 
-    // Party (seller / buyer / third party)
+    /**
+     * Party block (seller / buyer / third party).
+     */
     @Getter
     @Setter
     public static class Party {
@@ -34,7 +44,10 @@ public class KsefInvoiceXmlDto {
         private Address address;
     }
 
-    // IdentificationData
+    /**
+     * Party identity data from XML.
+     * NIP is kept as taxId in Java.
+     */
     @Getter
     @Setter
     public static class IdentificationData {
@@ -44,7 +57,10 @@ public class KsefInvoiceXmlDto {
         private String name;
     }
 
-    // Address
+    /**
+     * Party address.
+     * AdresL2 is optional.
+     */
     @Getter
     @Setter
     public static class Address {
@@ -57,7 +73,10 @@ public class KsefInvoiceXmlDto {
         private String addressLine2;
     }
 
-    // Invoice body
+    /**
+     * Invoice body fields:
+     * currency, dates, invoice number, total net/tax/gross and line list.
+     */
     @Getter
     @Setter
     public static class InvoiceBody {
@@ -75,12 +94,19 @@ public class KsefInvoiceXmlDto {
         private BigDecimal totalTax;
         @JacksonXmlProperty(localName = "P_15")
         private BigDecimal totalGross;
+
+        /**
+         * FaWiersz comes as repeated XML elements (no wrapping container).
+         */
         @JacksonXmlElementWrapper(useWrapping = false)
         @JacksonXmlProperty(localName = "FaWiersz")
         private List<InvoiceLine> lines;
     }
 
-    // Invoice line
+    /**
+     * Single invoice line item:
+     * line number, item name, quantity, unit price, line net value, tax rate.
+     */
     @Getter
     @Setter
     public static class InvoiceLine {

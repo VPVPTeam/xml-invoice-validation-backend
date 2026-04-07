@@ -1,31 +1,73 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
+
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+/**
+ * Final batch-level validation result.
+ * Keeps summary status, ids, issue list and counters.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 public class ValidationResult {
-    private String batchId; // ID загрузки/пакета
+    /**
+     * Batch id (upload/package id).
+     */
+    private String batchId;
 
-    private Severity status; // "OK", "WARNING", "ERROR"
-    // Список поставщиков, которые встретились в batch (например NIP)
+    /**
+     * Overall result status for the whole batch: OK / WARNING / ERROR.
+     */
+    private Severity status;
+
+    /**
+     * Unique seller ids found in this batch.
+     */
     private List<String> listOfVendorIds = new ArrayList<>();
-    // Список invoiceId для дедупликации: sellerTaxId + "|" + invoiceNumber
+
+    /**
+     * Unique invoice ids.<br>
+     * Format: sellerTaxId + "|" + invoiceNumber
+     */
     private List<String> listOfInvoiceIds = new ArrayList<>();
-    // Все найденные проблемы по batch
+
+    /**
+     * All issues collected during validation.
+     */
     private List<ValidationIssue> issues = new ArrayList<>();
-    // Полезные агрегаты
+
+    /**
+     * Total number of invoices processed in the batch.
+     */
     private int totalInvoices;
+
+    /**
+     * Number of invoices with no blocking errors.
+     */
     private int validInvoices;
-    private int invalidInvoices;
+
+    /**
+     * Number of invoices with blocking errors/warnings.
+     */
+    private int invoicesWithIssues;
+
+    /**
+     * Number of duplicates found in the same batch.
+     */
     private int duplicateInvoices;
+
+    /**
+     * Result creation timestamp.
+     */
     private OffsetDateTime createdAt = OffsetDateTime.now();
-    
+
     public ValidationResult(String batchId,
                             Severity status,
                             List<String> listOfVendorIds,
@@ -33,7 +75,7 @@ public class ValidationResult {
                             List<ValidationIssue> issues,
                             int totalInvoices,
                             int validInvoices,
-                            int invalidInvoices,
+                            int invoicesWithIssues,
                             int duplicateInvoices,
                             OffsetDateTime createdAt) {
         this.batchId = batchId;
@@ -43,7 +85,7 @@ public class ValidationResult {
         this.issues = issues == null ? new ArrayList<>() : new ArrayList<>(issues);
         this.totalInvoices = totalInvoices;
         this.validInvoices = validInvoices;
-        this.invalidInvoices = invalidInvoices;
+        this.invoicesWithIssues = invoicesWithIssues;
         this.duplicateInvoices = duplicateInvoices;
         this.createdAt = createdAt == null ? OffsetDateTime.now() : createdAt;
     }

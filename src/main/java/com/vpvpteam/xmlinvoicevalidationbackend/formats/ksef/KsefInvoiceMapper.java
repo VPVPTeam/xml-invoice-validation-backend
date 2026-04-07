@@ -6,9 +6,18 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Converts parsed KSeF XML DTO into canonical invoice model.
+ * This is a pure mapping class: takes data from DTO and copies it
+ * into canonical objects with the same meaning.
+ */
 @Component
 public class KsefInvoiceMapper {
-    // CanonicalInvoice creating
+
+    /**
+     * Main entry point:<br>
+     * build CanonicalInvoice from parsed KSeF DTO.
+     */
     public CanonicalInvoice toCanonical(KsefInvoiceXmlDto dto) {
         CanonicalInvoice invoice = new CanonicalInvoice();
         invoice.setHeader(mapHeader(dto));
@@ -17,7 +26,9 @@ public class KsefInvoiceMapper {
         return invoice;
     }
 
-    // InvoiceHeader mapping
+    /**
+     * Maps header block fields.
+     */
     private InvoiceHeader mapHeader(KsefInvoiceXmlDto dto) {
         KsefInvoiceXmlDto.InvoiceBody body = dto.getInvoiceBody();
         InvoiceHeader header = new InvoiceHeader();
@@ -32,7 +43,9 @@ public class KsefInvoiceMapper {
         return header;
     }
 
-    // Party mapping
+    /**
+     * Maps party block fields.
+     */
     private Party mapParty(KsefInvoiceXmlDto.Party dtoParty) {
         Party party = new Party();
         party.setTaxId(dtoParty.getIdentificationData().getTaxId());
@@ -41,7 +54,9 @@ public class KsefInvoiceMapper {
         return party;
     }
 
-    // Address mapping
+    /**
+     * Maps address block fields.
+     */
     private Address mapAddress(KsefInvoiceXmlDto.Address dtoAddress) {
         Address address = new Address();
         address.setCountryCode(dtoAddress.getCountryCode());
@@ -50,14 +65,18 @@ public class KsefInvoiceMapper {
         return address;
     }
 
-    // List<InvoiceLine> mapping
+    /**
+     * Maps all invoice lines.
+     */
     private List<InvoiceLine> mapLines(List<KsefInvoiceXmlDto.InvoiceLine> dtoLines) {
         return dtoLines.stream()
                 .map(this::mapLine)
                 .toList();
     }
 
-    //  InvoiceLine mapping
+    /**
+     * Maps an invoice line item.
+     */
     private InvoiceLine mapLine(KsefInvoiceXmlDto.InvoiceLine dtoLine) {
         InvoiceLine line = new InvoiceLine();
         line.setLineNumber(dtoLine.getLineNumber());
@@ -70,7 +89,9 @@ public class KsefInvoiceMapper {
         return line;
     }
 
-    // InvoiceTotals mapping
+    /**
+     * Maps invoice totals block.
+     */
     private InvoiceTotals mapTotals(KsefInvoiceXmlDto.InvoiceBody body) {
         InvoiceTotals totals = new InvoiceTotals();
         totals.setCurrencyCode(body.getCurrencyCode());
