@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 import java.io.InputStream;
 import java.util.*;
 
+/**
+ * Service that validates a batch of XML invoice/invoices.
+ * Orchestrates parsing, duplicate checks, technical validation and business validation.
+ */
 @Service
 public class ValidationService {
-
     private static final String UNKNOWN = "UNKNOWN";
 
     private final KsefInvoiceParser parser;
@@ -27,24 +30,23 @@ public class ValidationService {
     }
 
     /**
-     * Batch validation:
-     * 1) parse XML -> DTO
-     * 2) technicalValidator.validate(dto) (он уже внутри может вызвать mapper)
-     * 3) собираем общий ValidationResult по batch
+     * Runs validation for a batch of XML inputs and returns ValidationResult.
      */
     public ValidationResult validateBatch(List<InputStream> xmlInputs, String batchId) {
+        // 1) Create ValidationResult object and attach batch id.
         ValidationResult result = new ValidationResult();
         result.setBatchId(batchId);
 
+        // 2) Prepare accumulators for issues and summary id lists.
         List<ValidationIssue> allIssues = new ArrayList<>();
         Set<String> vendorIds = new LinkedHashSet<>();
         Set<String> invoiceIds = new LinkedHashSet<>();
 
-        // Нужно для определения дублей внутри одного batch
+        // 3) Keep a set of invoice ids seen in this batch for duplicate detection.
         Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
+        // 4) Handle empty batch as a technical error and return early.
         if (xmlInputs == null || xmlInputs.isEmpty()) {
-            // Пустой batch -> техническая ошибка
             allIssues.add(ValidationIssue.buildIssue(
                     "UNKNOWN",
                     "UNKNOWN",
@@ -58,14 +60,14 @@ public class ValidationService {
             result.setListOfVendorIds(List.of());
             result.setListOfInvoiceIds(List.of());
             result.setIssues(allIssues);
-            result.setStatus(resolveStatus(allIssues));
+            result.resolveStatus();
             return result;
         }
 
-        for (InputStream xmlInput: xmlInputs) {
-            // 1) Parsing
+        // 5) Validate each XML invoice independently and merge issues if present.
+        for (InputStream xmlInput : xmlInputs) {
+            // 5.1) Parse XML into DTO. On parse failure, add issue and continue with next file.
             KsefInvoiceXmlDto dto;
-
             try {
                 dto = parser.parse(xmlInput);
             } catch (Exception ex) {
@@ -81,15 +83,17 @@ public class ValidationService {
                 continue;
             }
 
-            String sellerTaxId = extractSellerTaxId(dto);
-            String invoiceNumber = extractInvoiceNumber(dto);
+            // 5.2) Extract safe identifiers used for deduplication and reporting.
+            String sellerTaxId = dto.safeSellerTaxId();
+            String invoiceNumber = dto.safeInvoiceNumber();
             String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
+            // 5.3) Collect ids for batch-level summary.
             vendorIds.add(sellerTaxId);
             invoiceIds.add(invoiceId);
 
-            // 2) Duplicate check in current batch (warning)
-            // Это не останавливает техническую валидацию
+            // 5.4) Detect duplicates inside the same batch.
+            //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
                 allIssues.add(ValidationIssue.buildIssue(
                         invoiceNumber,
@@ -100,69 +104,22 @@ public class ValidationService {
                         "invoiceId",
                         ValidationIssue.messageDuplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
+                continue;
             }
 
-            // 3) Technical validation:
-            // Важно: теперь сервис НЕ вызывает mapper напрямую.
-            // Это ответственность TechnicalValidator.
+            // 5.5) Run technical validator and merge all returned issues.
             TechnicalValidationOutput techOutput = technicalValidator.validate(dto);
             if (techOutput.getIssues() != null && !techOutput.getIssues().isEmpty()) {
                 allIssues.addAll(techOutput.getIssues());
             }
         }
 
+        // 6) Build final batch ValidationResult from accumulated data.
         result.setListOfVendorIds(new ArrayList<>(vendorIds));
         result.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
         result.setIssues(allIssues);
-        result.setStatus(resolveStatus(allIssues));
+        result.resolveStatus();
 
         return result;
-    }
-
-    /**
-     * Статус по вашим правилам:
-     * - no issues -> OK
-     * - есть хотя бы один ERROR -> ERROR
-     * - иначе (есть WARNING) -> WARNING
-     */
-    private Severity resolveStatus(List<ValidationIssue> issues) {
-        if (issues == null || issues.isEmpty()) {
-            return Severity.OK;
-        }
-
-        boolean hasError = issues.stream().anyMatch(i -> i.getSeverity() == Severity.ERROR);
-        if (hasError) {
-            return Severity.ERROR;
-        }
-
-        boolean hasWarning = issues.stream().anyMatch(i -> i.getSeverity() == Severity.WARNING);
-        return hasWarning ? Severity.WARNING : Severity.OK;
-    }
-
-    private String extractSellerTaxId(KsefInvoiceXmlDto dto) {
-        try {
-            String taxId = dto.getSeller().getIdentificationData().getTaxId();
-            return isBlank(taxId) ? UNKNOWN : taxId.trim();
-        } catch (Exception ex) {
-            return UNKNOWN;
-        }
-    }
-
-    private String extractInvoiceNumber(KsefInvoiceXmlDto dto) {
-        try {
-            String invoiceNumber = dto.getInvoiceBody().getInvoiceNumber();
-            return isBlank(invoiceNumber) ? UNKNOWN : invoiceNumber.trim();
-        } catch (Exception ex) {
-            return UNKNOWN;
-        }
-    }
-
-    private String safeMessage(Exception ex) {
-        String msg = ex.getMessage();
-        return (msg == null || msg.isBlank()) ? ex.getClass().getSimpleName() : msg;
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

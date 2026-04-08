@@ -89,4 +89,24 @@ public class ValidationResult {
         this.duplicateInvoices = duplicateInvoices;
         this.createdAt = createdAt == null ? OffsetDateTime.now() : createdAt;
     }
+
+    /**
+     * Resolves final batch status:
+     * ERROR > WARNING > OK
+     */
+    public void resolveStatus() {
+        if (issues == null || issues.isEmpty()) {
+            // 1) No issues means batch is OK.
+            setStatus(Severity.OK);
+        } else if (issues.stream().anyMatch(i -> i.getSeverity() == Severity.ERROR)) {
+            // 2) Any ERROR makes final status ERROR.
+            setStatus(Severity.ERROR);
+        } else if (issues.stream().anyMatch(i -> i.getSeverity() == Severity.WARNING)) {
+            // 3) if no ERROR but at least one WARNING, status is WARNING.
+            setStatus(Severity.WARNING);
+        } else {
+            // 4) No issues means batch is OK.
+            setStatus(Severity.OK);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import jakarta.annotation.Nullable;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -75,7 +76,7 @@ public class KsefInvoiceXmlDto {
 
     /**
      * Invoice body fields:
-     * currency, dates, invoice number, total net/tax/gross and line list.
+     * currency, dates, invoice number, total net/tax/gross and invoice line list.
      */
     @Getter
     @Setter
@@ -124,5 +125,29 @@ public class KsefInvoiceXmlDto {
         private BigDecimal netValue;
         @JacksonXmlProperty(localName = "P_12")
         private BigDecimal taxRate;
+    }
+
+    /**
+     * Reads seller tax id safely; returns UNKNOWN on any read problem.
+     */
+    public String safeSellerTaxId() {
+        try {
+            String taxId = this.getSeller().getIdentificationData().getTaxId();
+            return FieldCheck.notBlank(taxId) ? taxId : "UNKNOWN";
+        } catch (Exception ex) {
+            return "UNKNOWN";
+        }
+    }
+
+    /**
+     * Reads invoice number safely; returns UNKNOWN on any read problem.
+     */
+    public String safeInvoiceNumber() {
+        try {
+            String invoiceNumber = this.getInvoiceBody().getInvoiceNumber();
+            return FieldCheck.notBlank(invoiceNumber) ? invoiceNumber : "UNKNOWN";
+        } catch (Exception ex) {
+            return "UNKNOWN";
+        }
     }
 }

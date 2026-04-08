@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import lombok.AllArgsConstructor;
@@ -51,6 +52,7 @@ public class ValidationIssue {
      * Message for an empty batch input.
      */
     public static String messageTechEmptyBatch() {
+
         return "ERROR\n" +
                 "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
                 "Technical validation failed: batch is missing/invalid or cannot be read.\n" +
@@ -61,14 +63,11 @@ public class ValidationIssue {
      * Message for XML parse failure.
      */
     public static String messageTechXmlParseError(Exception ex) {
-        String exMsg = (ex == null || ex.getMessage() == null || ex.getMessage().isBlank())
-                ? (ex == null ? "UnknownException" : ex.getClass().getSimpleName())
-                : ex.getMessage();
 
         return "ERROR\n" +
                 "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
                 "Technical validation failed: field 'xml' is missing/invalid or cannot be read.\n" +
-                "Cannot parse XML: " + exMsg + " (rule: TECH_XML_PARSE_ERROR)";
+                "Cannot parse XML:\n" + ExceptionUtils.safeMessage(ex) + "\nrule: TECH_XML_PARSE_ERROR";
     }
 
     /**
@@ -77,13 +76,10 @@ public class ValidationIssue {
     public static String messageKsefCanonicalMappingFailed(String sellerTaxId,
                                                            String invoiceNumber,
                                                            Exception ex) {
-        String exMsg = (ex == null || ex.getMessage() == null || ex.getMessage().isBlank())
-                ? (ex == null ? "UnknownException" : ex.getClass().getSimpleName())
-                : ex.getClass().getSimpleName() + ": " + ex.getMessage();
 
         return "ERROR\n" +
                 "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
-                "\nTechnical validation failed: cannot create CanonicalInvoice. " + exMsg;
+                "\nTechnical validation failed: cannot create CanonicalInvoice.\n" + ExceptionUtils.safeMessage(ex);
     }
 
     /**
