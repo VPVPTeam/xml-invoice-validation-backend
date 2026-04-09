@@ -5,7 +5,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlD
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationResult;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidator;
 import org.springframework.stereotype.Service;
@@ -32,9 +32,9 @@ public class ValidationService {
     /**
      * Runs validation for a batch of XML inputs and returns ValidationResult.
      */
-    public ValidationResult validateBatch(List<InputStream> xmlInputs, String batchId) {
+    public ValidationOutput validateBatch(List<InputStream> xmlInputs, String batchId) {
         // 1) Create ValidationResult object and attach batch id.
-        ValidationResult result = new ValidationResult();
+        ValidationOutput result = new ValidationOutput();
         result.setBatchId(batchId);
 
         // 2) Prepare accumulators for issues and summary id lists.
