@@ -10,6 +10,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalV
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidator;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.*;
 
@@ -29,10 +30,20 @@ public class ValidationService {
         this.technicalValidator = technicalValidator;
     }
 
+    public ValidationOutput validateBytes(List<byte[]> xmlFilesAsBytes) {
+        List<InputStream> xmlInputStreams = new ArrayList<InputStream>();
+
+        for (byte[] xmlBytes : xmlFilesAsBytes) {
+            xmlInputStreams.add(new ByteArrayInputStream(xmlBytes));
+        }
+
+        return validateBatch(xmlInputStreams, UUID.randomUUID().toString());
+    }
+
     /**
      * Runs validation for a batch of XML inputs and returns ValidationResult.
      */
-    public ValidationOutput validateBatch(List<InputStream> xmlInputs, String batchId) {
+    private ValidationOutput validateBatch(List<InputStream> xmlInputs, String batchId) {
         // 1) Create ValidationResult object and attach batch id.
         ValidationOutput result = new ValidationOutput();
         result.setBatchId(batchId);
