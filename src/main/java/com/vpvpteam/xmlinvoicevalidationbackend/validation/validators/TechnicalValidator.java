@@ -11,5 +11,5 @@ public interface TechnicalValidator {
     /**
      * Runs technical validation for invoice DTO.
      */
-    TechnicalValidationOutput validate(KsefInvoiceXmlDto dto);
+    TechnicalValidationOutput validate(KsefInvoiceXmlDto dto, String xmlFileName);
 }

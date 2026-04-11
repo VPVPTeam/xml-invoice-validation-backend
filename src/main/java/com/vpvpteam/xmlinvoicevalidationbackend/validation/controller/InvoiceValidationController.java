@@ -1,12 +1,16 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
+import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,16 +35,26 @@ public class InvoiceValidationController {
         }
 
         try {
-            List<byte[]> xmlFilesAsBytes = new ArrayList<>(files.size());
+            List<XmlFileData> xmlFiles = new ArrayList<>(files.size());
+
+
             for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) {
-                    throw new ApiBadRequestException("Niepoprawny plik XML: " + file.getOriginalFilename());
+                if (file == null) {
+                    throw new ApiBadRequestException("Niepoprawny plik XML");
                 }
 
-                xmlFilesAsBytes.add(file.getBytes());
+                String fileName = (FieldCheck.notNullNorBlank(file.getOriginalFilename()))
+                        ? file.getOriginalFilename()
+                        : "UNKNOWN";
+
+                if (file.isEmpty()) {
+                    throw new ApiBadRequestException("Niepoprawny plik XML:" + fileName);
+                }
+
+                xmlFiles.add(new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes())));
             }
 
-            return validationService.validateBytes(xmlFilesAsBytes);
+            return validationService.validateFiles(xmlFiles);
         } catch (ApiBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {

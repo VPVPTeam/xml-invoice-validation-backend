@@ -17,6 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ValidationIssue {
+    private String fileName; // original name of XML file
     private String invoiceNumber;
     private String sellerTaxId;
     private Severity severity; // "ERROR", "WARNING"
@@ -28,7 +29,9 @@ public class ValidationIssue {
     /**
      * Factory method for creating ValidationIssue.
      */
+    // FIXME: можно ли поменять на конструктор?
     static public ValidationIssue buildIssue(
+            String fileName,
             String invoiceNumber,
             String sellerTaxId,
             ValidationStage stage,
@@ -38,6 +41,7 @@ public class ValidationIssue {
             String message
     ) {
         ValidationIssue issue = new ValidationIssue();
+        issue.setFileName(fileName);
         issue.setInvoiceNumber(invoiceNumber);
         issue.setSellerTaxId(sellerTaxId);
         issue.setStage(stage);
@@ -54,7 +58,6 @@ public class ValidationIssue {
     public static String messageTechEmptyBatch() {
 
         return "ERROR\n" +
-                "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
                 "Technical validation failed: batch is missing/invalid or cannot be read.\n" +
                 "Batch has no XML files to validate (rule: TECH_EMPTY_BATCH)";
     }
@@ -62,11 +65,11 @@ public class ValidationIssue {
     /**
      * Message for XML parse failure.
      */
-    public static String messageTechXmlParseError(Exception ex) {
+    public static String messageTechXmlParseError(String fileName, Exception ex) {
 
         return "ERROR\n" +
-                "Seller Tax ID: UNKNOWN; Invoice Number: UNKNOWN\n" +
-                "Technical validation failed: field 'xml' is missing/invalid or cannot be read.\n" +
+                "File name: " + fileName +
+                "\nTechnical validation failed: field 'xml' is missing/invalid or cannot be read.\n" +
                 "Cannot parse XML:\n" + ExceptionUtils.safeMessage(ex) + "\nrule: TECH_XML_PARSE_ERROR";
     }
 
@@ -75,10 +78,12 @@ public class ValidationIssue {
      */
     public static String messageKsefCanonicalMappingFailed(String sellerTaxId,
                                                            String invoiceNumber,
+                                                           String fileName,
                                                            Exception ex) {
 
         return "ERROR\n" +
-                "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                "File name: " + fileName +
+                "\nSeller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
                 "\nTechnical validation failed: cannot create CanonicalInvoice.\n" + ExceptionUtils.safeMessage(ex);
     }
 

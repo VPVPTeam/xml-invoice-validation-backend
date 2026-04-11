@@ -9,7 +9,7 @@ public final class FieldCheck {
     /**
      * Null/blank string check.
      */
-    public static boolean notBlank(String value) {
+    public static boolean notNullNorBlank(String value) {
         return value != null && !value.isBlank();
     }
 

@@ -133,7 +133,7 @@ public class KsefInvoiceXmlDto {
     public String safeSellerTaxId() {
         try {
             String taxId = this.getSeller().getIdentificationData().getTaxId();
-            return FieldCheck.notBlank(taxId) ? taxId : "UNKNOWN";
+            return FieldCheck.notNullNorBlank(taxId) ? taxId : "UNKNOWN";
         } catch (Exception ex) {
             return "UNKNOWN";
         }
@@ -145,7 +145,7 @@ public class KsefInvoiceXmlDto {
     public String safeInvoiceNumber() {
         try {
             String invoiceNumber = this.getInvoiceBody().getInvoiceNumber();
-            return FieldCheck.notBlank(invoiceNumber) ? invoiceNumber : "UNKNOWN";
+            return FieldCheck.notNullNorBlank(invoiceNumber) ? invoiceNumber : "UNKNOWN";
         } catch (Exception ex) {
             return "UNKNOWN";
         }

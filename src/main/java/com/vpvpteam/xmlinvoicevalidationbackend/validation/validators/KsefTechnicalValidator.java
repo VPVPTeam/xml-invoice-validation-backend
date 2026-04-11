@@ -29,7 +29,7 @@ public class KsefTechnicalValidator implements TechnicalValidator {
      * Runs technical validation for Invoice DTO and returns output (success or failure)
      */
     @Override
-    public TechnicalValidationOutput validate(KsefInvoiceXmlDto dto) {
+    public TechnicalValidationOutput validate(KsefInvoiceXmlDto dto, String xmlFileName) {
         // 1) Create issue list
         //    We collect all problems here and return them in one output object.
         List<ValidationIssue> issues = new ArrayList<>();
@@ -64,13 +64,14 @@ public class KsefTechnicalValidator implements TechnicalValidator {
             return new TechnicalValidationOutput(canonicalInvoice, issues);
         } catch (Exception ex) {
             issues.add(ValidationIssue.buildIssue(
+                    xmlFileName,
                     invoiceNumber,
                     sellerTaxId,
                     ValidationStage.TECHNICAL,
                     Severity.ERROR,
                     "TECH_CANONICAL_MAPPING_FAILED",
                     "canonicalInvoice",
-                    ValidationIssue.messageKsefCanonicalMappingFailed(sellerTaxId, invoiceNumber, ex)
+                    ValidationIssue.messageKsefCanonicalMappingFailed(sellerTaxId, invoiceNumber, xmlFileName, ex)
             ));
             return TechnicalValidationOutput.failure(issues);
         }
@@ -90,10 +91,10 @@ public class KsefTechnicalValidator implements TechnicalValidator {
 
         // 2) Validate required InvoiceBody fields:
         //    invoice identifiers/dates, currency, and totals block values. They must neither be blank nor null.
-        checkRequired(FieldCheck.notBlank(body.getInvoiceNumber()), "Fa.P_2", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notBlank(body.getIssueDate()), "Fa.P_1", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notBlank(body.getSaleDate()), "Fa.P_6", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notBlank(body.getCurrencyCode()), "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getInvoiceNumber()), "Fa.P_2", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getIssueDate()), "Fa.P_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getSaleDate()), "Fa.P_6", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getCurrencyCode()), "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
         checkRequired(body.getTotalNet() != null, "Fa.P_13_1", sellerTaxId, invoiceNumber, issues);
         checkRequired(body.getTotalTax() != null, "Fa.P_14_1", sellerTaxId, invoiceNumber, issues);
         checkRequired(body.getTotalGross() != null, "Fa.P_15", sellerTaxId, invoiceNumber, issues);
@@ -117,8 +118,8 @@ public class KsefTechnicalValidator implements TechnicalValidator {
             // 4.2) Validate required fields inside an InvoiceLine.
             //      They must neither be blank nor null.
             checkRequired(line.getLineNumber() > 0, p + ".NrWierszaFa", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notBlank(line.getProductName()), p + ".P_7", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notBlank(line.getUnitOfMeasure()), p + ".P_8A", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(line.getProductName()), p + ".P_7", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(line.getUnitOfMeasure()), p + ".P_8A", sellerTaxId, invoiceNumber, issues);
             checkRequired(line.getQuantity() != null, p + ".P_8B", sellerTaxId, invoiceNumber, issues);
             checkRequired(line.getUnitNetPrice() != null, p + ".P_9A", sellerTaxId, invoiceNumber, issues);
             checkRequired(line.getNetValue() != null, p + ".P_11", sellerTaxId, invoiceNumber, issues);
@@ -142,16 +143,16 @@ public class KsefTechnicalValidator implements TechnicalValidator {
         KsefInvoiceXmlDto.IdentificationData id = party.getIdentificationData();
         checkRequired(id != null, basePath + ".DaneIdentyfikacyjne", sellerTaxId, invoiceNumber, issues);
         if (id != null) {
-            checkRequired(FieldCheck.notBlank(id.getTaxId()), basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notBlank(id.getName()), basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(id.getTaxId()), basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(id.getName()), basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
         }
 
         // 3) Validate address section and minimum required address fields.
         KsefInvoiceXmlDto.Address address = party.getAddress();
         checkRequired(address != null, basePath + ".Adres", sellerTaxId, invoiceNumber, issues);
         if (address != null) {
-            checkRequired(FieldCheck.notBlank(address.getCountryCode()), basePath + ".Adres.KodKraju", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notBlank(address.getAddressLine1()), basePath + ".Adres.AdresL1", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(address.getCountryCode()), basePath + ".Adres.KodKraju", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(address.getAddressLine1()), basePath + ".Adres.AdresL1", sellerTaxId, invoiceNumber, issues);
         }
     }
 
@@ -166,6 +167,7 @@ public class KsefTechnicalValidator implements TechnicalValidator {
         // Converts any failed required-check into a technical issue object.
         if (!condition) {
             issues.add(ValidationIssue.buildIssue(
+                    "",
                     invoiceNumber,
                     sellerTaxId,
                     ValidationStage.TECHNICAL,

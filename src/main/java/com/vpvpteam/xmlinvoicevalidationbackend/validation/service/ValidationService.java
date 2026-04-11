@@ -6,6 +6,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidator;
 import org.springframework.stereotype.Service;
@@ -20,8 +21,6 @@ import java.util.*;
  */
 @Service
 public class ValidationService {
-    private static final String UNKNOWN = "UNKNOWN";
-
     private final KsefInvoiceParser parser;
     private final TechnicalValidator technicalValidator;
 
@@ -30,20 +29,14 @@ public class ValidationService {
         this.technicalValidator = technicalValidator;
     }
 
-    public ValidationOutput validateBytes(List<byte[]> xmlFilesAsBytes) {
-        List<InputStream> xmlInputStreams = new ArrayList<InputStream>();
-
-        for (byte[] xmlBytes : xmlFilesAsBytes) {
-            xmlInputStreams.add(new ByteArrayInputStream(xmlBytes));
-        }
-
-        return validateBatch(xmlInputStreams, UUID.randomUUID().toString());
+    public ValidationOutput validateFiles(List<XmlFileData> xmlFilesData) {
+        return validateBatch(xmlFilesData, UUID.randomUUID().toString());
     }
 
     /**
      * Runs validation for a batch of XML inputs and returns ValidationResult.
      */
-    private ValidationOutput validateBatch(List<InputStream> xmlInputs, String batchId) {
+    private ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String batchId) {
         // 1) Create ValidationResult object and attach batch id.
         ValidationOutput result = new ValidationOutput();
         result.setBatchId(batchId);
@@ -57,10 +50,11 @@ public class ValidationService {
         Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
         // 4) Handle empty batch as a technical error and return early.
-        if (xmlInputs == null || xmlInputs.isEmpty()) {
+        if (xmlFilesData == null || xmlFilesData.isEmpty()) {
             allIssues.add(ValidationIssue.buildIssue(
-                    "UNKNOWN",
-                    "UNKNOWN",
+                    "",
+                    "",
+                    "",
                     ValidationStage.TECHNICAL,
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
@@ -76,20 +70,21 @@ public class ValidationService {
         }
 
         // 5) Validate each XML invoice independently and merge issues if present.
-        for (InputStream xmlInput : xmlInputs) {
+        for (XmlFileData xmlFileData : xmlFilesData) {
             // 5.1) Parse XML into DTO. On parse failure, add issue and continue with next file.
             KsefInvoiceXmlDto dto;
             try {
-                dto = parser.parse(xmlInput);
+                dto = parser.parse(xmlFileData.xmlInputStream());
             } catch (Exception ex) {
                 allIssues.add(ValidationIssue.buildIssue(
-                        "UNKNOWN",
-                        "UNKNOWN",
+                        xmlFileData.fileName(),
+                        "",
+                        "",
                         ValidationStage.TECHNICAL,
                         Severity.ERROR,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
-                        ValidationIssue.messageTechXmlParseError(ex)
+                        ValidationIssue.messageTechXmlParseError(xmlFileData.fileName(), ex)
                 ));
                 continue;
             }
@@ -107,6 +102,7 @@ public class ValidationService {
             //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
                 allIssues.add(ValidationIssue.buildIssue(
+                        "",
                         invoiceNumber,
                         sellerTaxId,
                         ValidationStage.BUSINESS,
@@ -119,7 +115,7 @@ public class ValidationService {
             }
 
             // 5.5) Run technical validator and merge all returned issues.
-            TechnicalValidationOutput techOutput = technicalValidator.validate(dto);
+            TechnicalValidationOutput techOutput = technicalValidator.validate(dto, xmlFileData.fileName());
             if (techOutput.getIssues() != null && !techOutput.getIssues().isEmpty()) {
                 allIssues.addAll(techOutput.getIssues());
             }
