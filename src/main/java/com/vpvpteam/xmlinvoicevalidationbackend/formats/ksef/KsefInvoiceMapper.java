@@ -34,7 +34,6 @@ public class KsefInvoiceMapper {
         InvoiceHeader header = new InvoiceHeader();
         header.setInvoiceNumber(body.getInvoiceNumber());
         header.setIssueDate(body.getIssueDate());
-        header.setSaleDate(body.getSaleDate());
         header.setSeller(mapParty(dto.getSeller()));
         header.setBuyer(mapParty(dto.getBuyer()));
         header.setThirdParty(

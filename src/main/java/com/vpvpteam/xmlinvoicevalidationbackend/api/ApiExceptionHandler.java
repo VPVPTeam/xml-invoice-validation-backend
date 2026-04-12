@@ -20,7 +20,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("Internal server error"));
+                .body(new ErrorResponse("Internal server error. Something went wrong"));
     }
 
     public record ErrorResponse(String message) {}

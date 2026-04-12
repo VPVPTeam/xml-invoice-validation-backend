@@ -87,8 +87,6 @@ public class KsefInvoiceXmlDto {
         private String issueDate;
         @JacksonXmlProperty(localName = "P_2")
         private String invoiceNumber;
-        @JacksonXmlProperty(localName = "P_6")
-        private String saleDate;
         @JacksonXmlProperty(localName = "P_13_1")
         private BigDecimal totalNet;
         @JacksonXmlProperty(localName = "P_14_1")

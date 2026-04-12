@@ -1,6 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
+import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class InvoiceValidationController {
     )
     public ValidationOutput validateXmlInputs(@RequestParam("file") List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
-            throw new ApiBadRequestException("Pusty batch");
+            throw new ApiBadRequestException("Empty batch");
         }
 
         try {
@@ -40,7 +40,7 @@ public class InvoiceValidationController {
 
             for (MultipartFile file : files) {
                 if (file == null) {
-                    throw new ApiBadRequestException("Niepoprawny plik XML");
+                    throw new ApiBadRequestException("XML file is null");
                 }
 
                 String fileName = (FieldCheck.notNullNorBlank(file.getOriginalFilename()))
@@ -48,7 +48,7 @@ public class InvoiceValidationController {
                         : "UNKNOWN";
 
                 if (file.isEmpty()) {
-                    throw new ApiBadRequestException("Niepoprawny plik XML:" + fileName);
+                    throw new ApiBadRequestException("Empty XML file: " + fileName);
                 }
 
                 xmlFiles.add(new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes())));
@@ -58,7 +58,7 @@ public class InvoiceValidationController {
         } catch (ApiBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new ApiBadRequestException("Niepoprawny plik XML");
+            throw new ApiBadRequestException("XML file is invalid: " + ExceptionUtils.safeMessage(ex));
         }
     }
 }

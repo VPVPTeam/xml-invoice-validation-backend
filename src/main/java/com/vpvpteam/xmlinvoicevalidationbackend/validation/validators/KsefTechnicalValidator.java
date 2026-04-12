@@ -34,14 +34,15 @@ public class KsefTechnicalValidator implements TechnicalValidator {
         //    We collect all problems here and return them in one output object.
         List<ValidationIssue> issues = new ArrayList<>();
 
-        // 2) Extract safe identifiers.
+
+        // 2) Validate DTO presence.
+        //    If DTO is null, we create a technical issue.
+        checkRequired(dto != null, "Faktura", "", "", issues);
+
+        // 3) Extract safe identifiers.
         //    If DTO is invalid/null, helper methods return "UNKNOWN" instead of throwing.
         String sellerTaxId = dto.safeSellerTaxId();
         String invoiceNumber = dto.safeInvoiceNumber();
-
-        // 3) Validate DTO presence.
-        //    If DTO is null, we create a technical issue.
-        checkRequired(dto != null, "Faktura", sellerTaxId, invoiceNumber, issues);
 
         // 4) Validate nested sections only when DTO exists.
         if (dto != null) {
@@ -93,7 +94,6 @@ public class KsefTechnicalValidator implements TechnicalValidator {
         //    invoice identifiers/dates, currency, and totals block values. They must neither be blank nor null.
         checkRequired(FieldCheck.notNullNorBlank(body.getInvoiceNumber()), "Fa.P_2", sellerTaxId, invoiceNumber, issues);
         checkRequired(FieldCheck.notNullNorBlank(body.getIssueDate()), "Fa.P_1", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notNullNorBlank(body.getSaleDate()), "Fa.P_6", sellerTaxId, invoiceNumber, issues);
         checkRequired(FieldCheck.notNullNorBlank(body.getCurrencyCode()), "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
         checkRequired(body.getTotalNet() != null, "Fa.P_13_1", sellerTaxId, invoiceNumber, issues);
         checkRequired(body.getTotalTax() != null, "Fa.P_14_1", sellerTaxId, invoiceNumber, issues);
