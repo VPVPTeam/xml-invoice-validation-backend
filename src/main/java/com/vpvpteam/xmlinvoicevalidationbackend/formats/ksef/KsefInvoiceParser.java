@@ -9,7 +9,7 @@ import java.io.InputStream;
  * Parses raw KSeF XML input into KsefInvoiceXmlDto.
  */
 @Component
-public class KsefInvoiceParser {
+public final class KsefInvoiceParser {
     private final XmlMapper xmlMapper;
 
     public KsefInvoiceParser() {

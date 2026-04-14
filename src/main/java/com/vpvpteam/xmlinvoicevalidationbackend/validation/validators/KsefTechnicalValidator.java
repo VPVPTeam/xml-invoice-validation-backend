@@ -17,7 +17,7 @@ import java.util.List;
  * Checks required XML fields and then tries canonical mapping.
  */
 @Component
-public class KsefTechnicalValidator implements TechnicalValidator {
+public final class KsefTechnicalValidator implements TechnicalValidator {
 
     private final KsefInvoiceMapper mapper;
 

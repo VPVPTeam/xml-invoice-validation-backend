@@ -19,7 +19,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TechnicalValidationOutput {
+public final class TechnicalValidationOutput {
 
     /**
      * Null when technical validation/mapping failed.

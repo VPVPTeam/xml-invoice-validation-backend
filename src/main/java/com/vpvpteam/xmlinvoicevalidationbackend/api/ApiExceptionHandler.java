@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
-public class ApiExceptionHandler {
+public final class ApiExceptionHandler {
 
     @ExceptionHandler(ApiBadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(ApiBadRequestException ex) {

@@ -12,7 +12,7 @@ import java.util.List;
  * into canonical objects with the same meaning.
  */
 @Component
-public class KsefInvoiceMapper {
+public final class KsefInvoiceMapper {
 
     /**
      * Main entry point:<br>

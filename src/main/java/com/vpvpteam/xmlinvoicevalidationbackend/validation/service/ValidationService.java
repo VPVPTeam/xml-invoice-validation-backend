@@ -20,7 +20,7 @@ import java.util.*;
  * Orchestrates parsing, duplicate checks, technical validation and business validation.
  */
 @Service
-public class ValidationService {
+public final class ValidationService {
     private final KsefInvoiceParser parser;
     private final TechnicalValidator technicalValidator;
 
@@ -34,12 +34,12 @@ public class ValidationService {
     }
 
     /**
-     * Runs validation for a batch of XML inputs and returns ValidationResult.
+     * Runs validation for a batch of XML inputs and returns ValidationOutput.
      */
     private ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String batchId) {
-        // 1) Create ValidationResult object and attach batch id.
-        ValidationOutput result = new ValidationOutput();
-        result.setBatchId(batchId);
+        // 1) Create ValidationOutput object and attach batch id.
+        ValidationOutput output = new ValidationOutput();
+        output.setBatchId(batchId);
 
         // 2) Prepare accumulators for issues and summary id lists.
         List<ValidationIssue> allIssues = new ArrayList<>();
@@ -62,11 +62,11 @@ public class ValidationService {
                     ValidationIssue.messageTechEmptyBatch()
             ));
 
-            result.setListOfVendorIds(List.of());
-            result.setListOfInvoiceIds(List.of());
-            result.setIssues(allIssues);
-            result.resolveStatus();
-            return result;
+            output.setListOfVendorIds(List.of());
+            output.setListOfInvoiceIds(List.of());
+            output.setIssues(allIssues);
+            output.prepareFinalReport();
+            return output;
         }
 
         // 5) Validate each XML invoice independently and merge issues if present.
@@ -111,6 +111,8 @@ public class ValidationService {
                         "invoiceId",
                         ValidationIssue.messageDuplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
+
+                output.increaseDuplicateInvoicesCount();
                 continue;
             }
 
@@ -121,12 +123,12 @@ public class ValidationService {
             }
         }
 
-        // 6) Build final batch ValidationResult from accumulated data.
-        result.setListOfVendorIds(new ArrayList<>(vendorIds));
-        result.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
-        result.setIssues(allIssues);
-        result.resolveStatus();
+        // 6) Build final batch ValidationOutput from accumulated data.
+        output.setListOfVendorIds(new ArrayList<>(vendorIds));
+        output.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
+        output.setIssues(allIssues);
+        output.prepareFinalReport();
 
-        return result;
+        return output;
     }
 }

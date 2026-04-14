@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/invoices")
-public class InvoiceValidationController {
+public final class InvoiceValidationController {
 
     private final ValidationService validationService;
 
