@@ -4,6 +4,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceParser;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
@@ -29,17 +30,15 @@ public final class ValidationService {
         this.technicalValidator = technicalValidator;
     }
 
-    public ValidationOutput validateFiles(List<XmlFileData> xmlFilesData) {
-        return validateBatch(xmlFilesData, UUID.randomUUID().toString());
-    }
-
     /**
      * Runs validation for a batch of XML inputs and returns ValidationOutput.
      */
-    private ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String batchId) {
-        // 1) Create ValidationOutput object and attach batch id.
-        ValidationOutput output = new ValidationOutput();
-        output.setBatchId(batchId);
+    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData) {
+        // 1a) Create ValidationBatch object.
+        ValidationBatch batch = new ValidationBatch();
+
+        // 1b) Create ValidationOutput object and attach batch.
+        ValidationOutput output = new ValidationOutput(batch);
 
         // 2) Prepare accumulators for issues and summary id lists.
         List<ValidationIssue> allIssues = new ArrayList<>();
@@ -62,8 +61,8 @@ public final class ValidationService {
                     ValidationIssue.messageTechEmptyBatch()
             ));
 
-            output.setListOfVendorIds(List.of());
-            output.setListOfInvoiceIds(List.of());
+            batch.setListOfVendorIds(List.of());
+            batch.setListOfInvoiceIds(List.of());
             output.setIssues(allIssues);
             output.prepareFinalReport();
             return output;
@@ -124,8 +123,8 @@ public final class ValidationService {
         }
 
         // 6) Build final batch ValidationOutput from accumulated data.
-        output.setListOfVendorIds(new ArrayList<>(vendorIds));
-        output.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
+        batch.setListOfVendorIds(new ArrayList<>(vendorIds));
+        batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
         output.setIssues(allIssues);
         output.prepareFinalReport();
 

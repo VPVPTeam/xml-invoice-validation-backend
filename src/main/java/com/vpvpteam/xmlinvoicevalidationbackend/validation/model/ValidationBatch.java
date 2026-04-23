@@ -1,0 +1,34 @@
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Getter
+@Setter
+public class ValidationBatch {
+    /**
+     * Batch id (upload/package id).
+     */
+    private String batchId = UUID.randomUUID().toString();
+
+    /**
+     * Unique seller ids found in this batch.
+     */
+    private List<String> listOfVendorIds = new ArrayList<>();
+
+    /**
+     * Unique invoice ids.<br>
+     * Format: sellerTaxId + "|" + invoiceNumber
+     */
+    private List<String> listOfInvoiceIds = new ArrayList<>();
+
+    /**
+     * Result creation timestamp.
+     */
+    private OffsetDateTime createdAt = OffsetDateTime.now();
+}
