@@ -2,14 +2,14 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Final batch-level validation result.
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 public class ValidationOutput {
-    private ValidationBatch validationBatch;
+    private final ValidationBatch validationBatch;
 
     /**
      * Overall result status for the whole batch: OK / WARNING / ERROR.
@@ -51,7 +51,7 @@ public class ValidationOutput {
     private int duplicateInvoices = 0;
 
     public ValidationOutput(ValidationBatch validationBatch) {
-        this.validationBatch = Objects.requireNonNull(validationBatch, "validationBatch must not be null");
+        this.validationBatch = requireNonNull(validationBatch, "validationBatch must not be null");
     }
 
     /**

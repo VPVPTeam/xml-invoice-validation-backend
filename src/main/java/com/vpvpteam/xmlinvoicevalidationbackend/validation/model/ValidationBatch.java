@@ -14,7 +14,12 @@ public class ValidationBatch {
     /**
      * Batch id (upload/package id).
      */
-    private String batchId = UUID.randomUUID().toString();
+    private final String batchId = UUID.randomUUID().toString();
+
+    /**
+     * Result creation timestamp.
+     */
+    private final OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
      * Unique seller ids found in this batch.
@@ -26,9 +31,4 @@ public class ValidationBatch {
      * Format: sellerTaxId + "|" + invoiceNumber
      */
     private List<String> listOfInvoiceIds = new ArrayList<>();
-
-    /**
-     * Result creation timestamp.
-     */
-    private OffsetDateTime createdAt = OffsetDateTime.now();
 }

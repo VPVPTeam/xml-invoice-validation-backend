@@ -54,7 +54,7 @@ public final class InvoiceValidationController {
                 xmlFiles.add(new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes())));
             }
 
-            return validationService.validateFiles(xmlFiles);
+            return validationService.validateBatch(xmlFiles);
         } catch (ApiBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {
