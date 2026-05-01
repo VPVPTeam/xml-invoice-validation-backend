@@ -5,7 +5,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlD
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-
+// TODO: Map-struct
 /**
  * Converts parsed KSeF XML DTO into canonical invoice model.
  * This is a pure mapping class: takes data from DTO and copies it

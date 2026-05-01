@@ -18,7 +18,7 @@ public class ValidationBatchDao {
     private EntityManager entityManager;
 
     @Transactional(readOnly = true)
-    public Map<String, OffsetDateTime> findBatchHistoryByInvoiceId(String invoiceId) {
+    public Map<String, OffsetDateTime> findBatchesByInvoiceId(String invoiceId) {
         Session session = entityManager.unwrap(Session.class);
 
         List<Object[]> rows = session.createNativeQuery("""
@@ -57,7 +57,7 @@ public class ValidationBatchDao {
 //    private EntityManager entityManager;
 //
 //    @Transactional(readOnly = true)
-//    public Map<String, OffsetDateTime> findBatchHistoryByInvoiceId(String invoiceId) {
+//    public Map<String, OffsetDateTime> findBatchesByInvoiceId(String invoiceId) {
 //        Session session = entityManager.unwrap(Session.class);
 //
 //        List<Tuple> rows = session.createNativeQuery("""

@@ -59,15 +59,15 @@ public class ValidationOutputEntity {
     )
     private List<ValidationIssueEntity> issues = new ArrayList<>();
 
-    // FIXME: Посмотреть где используется и нужно ли это
-//    public void addIssue(ValidationIssueEntity issue) {
-//        if (issue == null) {
-//            return;
-//        }
-//        issues.add(issue);
-//        issue.setValidationOutput(this);
-//    }
-//
+
+    public void addIssue(ValidationIssueEntity issue) {
+        if (issue == null) {
+            return;
+        }
+        issues.add(issue);
+        issue.setValidationOutput(this);
+    }
+// FIXME: Посмотреть где используется и нужно ли это
 //    public void removeIssue(ValidationIssueEntity issue) {
 //        if (issue == null) {
 //            return;

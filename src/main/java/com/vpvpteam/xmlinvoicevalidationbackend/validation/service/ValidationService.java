@@ -8,12 +8,10 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidationOutput;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validators.TechnicalValidator;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidator;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.*;
 
 /**
