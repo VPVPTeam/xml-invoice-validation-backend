@@ -53,7 +53,6 @@ public class ValidationPersistenceMapper {
             issueEntity.setStage(issue.getStage());
             issueEntity.setRuleKey(issue.getRuleKey());
             issueEntity.setFieldPath(issue.getFieldPath());
-            // message intentionally ignored (нет колонки в БД)
             result.add(issueEntity);
         }
 

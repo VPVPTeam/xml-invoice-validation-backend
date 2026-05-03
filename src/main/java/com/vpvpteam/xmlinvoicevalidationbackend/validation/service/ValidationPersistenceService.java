@@ -1,7 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationIssueEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
@@ -28,7 +27,6 @@ public class ValidationPersistenceService {
         entityManager.persist(batchEntity);
 
         ValidationOutputEntity outputEntity = mapper.toOutputEntity(output, batchEntity);
-        batchEntity.setValidationOutput(outputEntity); // inverse side sync
 
         entityManager.persist(outputEntity);
     }
