@@ -37,7 +37,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
 
         // 2) Validate DTO presence.
         //    If DTO is null, we create a technical issue.
-        checkRequired(dto != null, "Faktura", "", "", issues);
+        checkRequired(dto != null, xmlFileName, "Faktura", "", "", issues);
 
         // 3) Extract safe identifiers.
         //    If DTO is invalid/null, helper methods return "UNKNOWN" instead of throwing.
@@ -46,9 +46,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
 
         // 4) Validate nested sections only when DTO exists.
         if (dto != null) {
-            validateParty(dto.getSeller(), "Podmiot1", sellerTaxId, invoiceNumber, issues);
-            validateParty(dto.getBuyer(), "Podmiot2", sellerTaxId, invoiceNumber, issues);
-            validateBody(dto.getInvoiceBody(), sellerTaxId, invoiceNumber, issues);
+            validateParty(dto.getSeller(), xmlFileName, "Podmiot1", sellerTaxId, invoiceNumber, issues);
+            validateParty(dto.getBuyer(), xmlFileName, "Podmiot2", sellerTaxId, invoiceNumber, issues);
+            validateBody(dto.getInvoiceBody(), xmlFileName, sellerTaxId, invoiceNumber, issues);
         }
 
         // 5) Fail before mapping:
@@ -82,48 +82,49 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
      * Validates required fields in invoice body and invoice lines.
      */
     private void validateBody(KsefInvoiceXmlDto.InvoiceBody body,
+                              String xmlFileName,
                               String sellerTaxId,
                               String invoiceNumber,
                               List<ValidationIssue> issues) {
         // 1) InvoiceBody node must exist.
         //    If absent, we stop InvoiceBody checks because there is nothing to inspect.
-        checkRequired(body != null, "Fa", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body != null, xmlFileName, "Fa", sellerTaxId, invoiceNumber, issues);
         if (body == null) return;
 
         // 2) Validate required InvoiceBody fields:
         //    invoice identifiers/dates, currency, and totals block values. They must neither be blank nor null.
-        checkRequired(FieldCheck.notNullNorBlank(body.getInvoiceNumber()), "Fa.P_2", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notNullNorBlank(body.getIssueDate()), "Fa.P_1", sellerTaxId, invoiceNumber, issues);
-        checkRequired(FieldCheck.notNullNorBlank(body.getCurrencyCode()), "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalNet() != null, "Fa.P_13_1", sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalTax() != null, "Fa.P_14_1", sellerTaxId, invoiceNumber, issues);
-        checkRequired(body.getTotalGross() != null, "Fa.P_15", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getInvoiceNumber()), xmlFileName, "Fa.P_2", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getIssueDate()), xmlFileName, "Fa.P_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(FieldCheck.notNullNorBlank(body.getCurrencyCode()), xmlFileName, "Fa.KodWaluty", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalNet() != null, xmlFileName, "Fa.P_13_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalTax() != null, xmlFileName, "Fa.P_14_1", sellerTaxId, invoiceNumber, issues);
+        checkRequired(body.getTotalGross() != null, xmlFileName, "Fa.P_15", sellerTaxId, invoiceNumber, issues);
 
         // 3) Validate invoice lines list presence.
         //    Empty/missing line list (null) is treated as technical error.
         List<KsefInvoiceXmlDto.InvoiceLine> lines = body.getLines();
-        checkRequired(lines != null && !lines.isEmpty(), "Fa.FaWiersz", sellerTaxId, invoiceNumber, issues);
+        checkRequired(lines != null && !lines.isEmpty(), xmlFileName, "Fa.FaWiersz", sellerTaxId, invoiceNumber, issues);
         if (lines == null) return;
 
         // 4) Validate each line item with indexed field path (FaWiersz[i]).
         // FIXME: String p = "Fa.FaWiersz[" + i + "]"; ГЛЯЕМ ПОТОМ, КОГДА БУДЕМ ВАЛИДИРОВАТЬ ЕСТЬ ЛИ ПОЛЯ "10", "20"... ИТД
         for (int i = 0; i < lines.size(); i++) {
             KsefInvoiceXmlDto.InvoiceLine line = lines.get(i);
-            String p = "Fa.FaWiersz[" + i + "]";
+            String fieldPath = "Fa.FaWiersz[" + i + "]";
 
             // 4.1) Ensure InvoiceLine node itself exists before checking its fields.
-            checkRequired(line != null, p, sellerTaxId, invoiceNumber, issues);
+            checkRequired(line != null, xmlFileName, fieldPath, sellerTaxId, invoiceNumber, issues);
             if (line == null) continue;
 
             // 4.2) Validate required fields inside an InvoiceLine.
             //      They must neither be blank nor null.
-            checkRequired(line.getLineNumber() > 0, p + ".NrWierszaFa", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notNullNorBlank(line.getProductName()), p + ".P_7", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notNullNorBlank(line.getUnitOfMeasure()), p + ".P_8A", sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getQuantity() != null, p + ".P_8B", sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getUnitNetPrice() != null, p + ".P_9A", sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getNetValue() != null, p + ".P_11", sellerTaxId, invoiceNumber, issues);
-            checkRequired(line.getTaxRate() != null, p + ".P_12", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getLineNumber() > 0, xmlFileName, fieldPath + ".NrWierszaFa", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(line.getProductName()), xmlFileName, fieldPath + ".P_7", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(line.getUnitOfMeasure()), xmlFileName, fieldPath + ".P_8A", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getQuantity() != null, xmlFileName, fieldPath + ".P_8B", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getUnitNetPrice() != null, xmlFileName, fieldPath + ".P_9A", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getNetValue() != null, xmlFileName, fieldPath + ".P_11", sellerTaxId, invoiceNumber, issues);
+            checkRequired(line.getTaxRate() != null, xmlFileName, fieldPath + ".P_12", sellerTaxId, invoiceNumber, issues);
         }
     }
 
@@ -131,28 +132,29 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
      * Validates required fields for party block.
      */
     private void validateParty(KsefInvoiceXmlDto.Party party,
+                               String xmlFileName,
                                String basePath,
                                String sellerTaxId,
                                String invoiceNumber,
                                List<ValidationIssue> issues) {
         // 1) Validate Party node existence (seller/buyer path is passed by caller).
-        checkRequired(party != null, basePath, sellerTaxId, invoiceNumber, issues);
+        checkRequired(party != null, xmlFileName, basePath, sellerTaxId, invoiceNumber, issues);
         if (party == null) return;
 
         // 2) Validate identification section and mandatory identity values (NIP, Nazwa).
         KsefInvoiceXmlDto.IdentificationData id = party.getIdentificationData();
-        checkRequired(id != null, basePath + ".DaneIdentyfikacyjne", sellerTaxId, invoiceNumber, issues);
+        checkRequired(id != null, xmlFileName, basePath + ".DaneIdentyfikacyjne", sellerTaxId, invoiceNumber, issues);
         if (id != null) {
-            checkRequired(FieldCheck.notNullNorBlank(id.getTaxId()), basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notNullNorBlank(id.getName()), basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(id.getTaxId()), xmlFileName, basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(id.getName()), xmlFileName, basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
         }
 
         // 3) Validate address section and minimum required address fields.
         KsefInvoiceXmlDto.Address address = party.getAddress();
-        checkRequired(address != null, basePath + ".Adres", sellerTaxId, invoiceNumber, issues);
+        checkRequired(address != null, xmlFileName, basePath + ".Adres", sellerTaxId, invoiceNumber, issues);
         if (address != null) {
-            checkRequired(FieldCheck.notNullNorBlank(address.getCountryCode()), basePath + ".Adres.KodKraju", sellerTaxId, invoiceNumber, issues);
-            checkRequired(FieldCheck.notNullNorBlank(address.getAddressLine1()), basePath + ".Adres.AdresL1", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(address.getCountryCode()), xmlFileName, basePath + ".Adres.KodKraju", sellerTaxId, invoiceNumber, issues);
+            checkRequired(FieldCheck.notNullNorBlank(address.getAddressLine1()), xmlFileName, basePath + ".Adres.AdresL1", sellerTaxId, invoiceNumber, issues);
         }
     }
 
@@ -160,6 +162,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
      * Checks if condition is true, otherwise adds technical issue
      */
     private void checkRequired(boolean condition,
+                               String fileName,
                                String fieldPath,
                                String sellerTaxId,
                                String invoiceNumber,
@@ -167,7 +170,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
         // Converts any failed required-check into a technical issue object.
         if (!condition) {
             issues.add(ValidationIssue.buildIssue(
-                    "",
+                    fileName,
                     invoiceNumber,
                     sellerTaxId,
                     ValidationStage.TECHNICAL,
