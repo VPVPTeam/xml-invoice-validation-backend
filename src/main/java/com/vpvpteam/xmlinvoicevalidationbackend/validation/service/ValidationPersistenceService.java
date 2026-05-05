@@ -6,20 +6,18 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPers
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@AllArgsConstructor
 public class ValidationPersistenceService {
 
     @PersistenceContext
     private EntityManager entityManager;
 
     private final ValidationPersistenceMapper mapper;
-
-    public ValidationPersistenceService(ValidationPersistenceMapper mapper) {
-        this.mapper = mapper;
-    }
 
     @Transactional
     public void save(ValidationOutput output) {

@@ -10,6 +10,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutpu
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidator;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -19,14 +20,11 @@ import java.util.*;
  * Orchestrates parsing, duplicate checks, technical validation and business validation.
  */
 @Service
+@AllArgsConstructor
 public final class ValidationService {
+    private final ValidationPersistenceService persistenceService;
     private final KsefInvoiceParser parser;
     private final TechnicalValidator technicalValidator;
-
-    public ValidationService(KsefInvoiceParser parser, TechnicalValidator technicalValidator) {
-        this.parser = parser;
-        this.technicalValidator = technicalValidator;
-    }
 
     /**
      * Runs validation for a batch of XML inputs and returns ValidationOutput.
@@ -99,7 +97,7 @@ public final class ValidationService {
             //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
                 allIssues.add(ValidationIssue.buildIssue(
-                        "",
+                        xmlFileData.fileName(),
                         invoiceNumber,
                         sellerTaxId,
                         ValidationStage.BUSINESS,
@@ -125,6 +123,8 @@ public final class ValidationService {
         batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
         output.setIssues(allIssues);
         output.prepareFinalReport();
+
+        persistenceService.save(output);
 
         return output;
     }
