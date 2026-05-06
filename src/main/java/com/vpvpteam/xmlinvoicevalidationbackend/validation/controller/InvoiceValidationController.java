@@ -6,6 +6,9 @@ import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationIssueEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
@@ -26,6 +29,7 @@ public final class InvoiceValidationController {
 
     private final ValidationService validationService;
     private final ValidationQueryService queryService;
+    private final ValidationPersistenceMapper persistenceMapper;
 
     @PostMapping(
             value = "/validate",
@@ -66,20 +70,27 @@ public final class InvoiceValidationController {
     }
 
     @GetMapping("/report/{batchId}")
-    public ValidationOutputEntity getReport(@PathVariable String batchId) {
-        return queryService.getFullReport(batchId)
+    public ValidationOutput getReport(@PathVariable String batchId) {
+        ValidationOutputEntity outputEntity = queryService.getFullReport(batchId)
                 .orElseThrow(() -> new ApiBadRequestException("Batch not found: " + batchId));
+        return persistenceMapper.toModel(outputEntity);
     }
 
     @GetMapping("/batches/by-vendor")
-    public List<ValidationBatchEntity> getBatchesByVendor(@RequestParam String vendorId) {
-        return queryService.getBatchesByVendor(vendorId);
+    public List<ValidationBatch> getBatchesByVendor(@RequestParam String vendorId) {
+        List<ValidationBatchEntity> batchEntities = queryService.getBatchesByVendor(vendorId);
+
+        return batchEntities.stream()
+                .map(persistenceMapper::toModel)
+                .toList();
     }
 
     @GetMapping("/issues/by-invoice")
-    public List<ValidationIssueEntity> getIssuesByInvoice(
-            @RequestParam String sellerTaxId,
-            @RequestParam String invoiceNumber) {
-        return queryService.getIssuesByInvoice(sellerTaxId, invoiceNumber);
+    public List<ValidationIssue> getIssuesByInvoice(@RequestParam String sellerTaxId, @RequestParam String invoiceNumber) {
+        List<ValidationIssueEntity> issueEntities = queryService.getIssuesByInvoice(sellerTaxId, invoiceNumber);
+
+        return issueEntities.stream()
+                .map(persistenceMapper::toModel)
+                .toList();
     }
 }

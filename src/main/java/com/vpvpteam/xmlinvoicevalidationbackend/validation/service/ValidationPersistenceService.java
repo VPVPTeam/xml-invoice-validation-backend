@@ -21,10 +21,10 @@ public class ValidationPersistenceService {
 
     @Transactional
     public void save(ValidationOutput output) {
-        ValidationBatchEntity batchEntity = mapper.toBatchEntity(output);
+        ValidationBatchEntity batchEntity = mapper.toEntity(output.getValidationBatch());
         entityManager.persist(batchEntity);
 
-        ValidationOutputEntity outputEntity = mapper.toOutputEntity(output, batchEntity);
+        ValidationOutputEntity outputEntity = mapper.toEntity(output, batchEntity);
 
         entityManager.persist(outputEntity);
     }
