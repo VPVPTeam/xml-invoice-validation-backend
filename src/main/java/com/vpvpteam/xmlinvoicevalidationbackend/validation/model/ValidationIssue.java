@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 /**
  * Validation issue item.
@@ -105,5 +108,30 @@ public class ValidationIssue {
         return "ERROR\n" +
                 "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
                 "\nTechnical validation failed: field '" + fieldPath + "' is missing or invalid.";
+    }
+
+    /**
+     * Message for duplicate invoice found in previous batches (cross-batch).
+     */
+    public static String messageDuplicateCrossBatch(String sellerTaxId,
+                                                    String invoiceNumber,
+                                                    Map<String, OffsetDateTime> batchesByInvoiceId) {
+        if (batchesByInvoiceId == null || batchesByInvoiceId.isEmpty()) {
+            return "WARNING\n" +
+                    "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                    "\nDuplicate invoice found in previous batch (rule: DUPLICATE_CROSS_BATCH)";
+        }
+        Map.Entry<String, OffsetDateTime> latest = batchesByInvoiceId.entrySet().iterator().next();
+        String latestBatchId = latest.getKey();
+        OffsetDateTime latestCreatedAt = latest.getValue();
+        String latestCreatedAtText = latestCreatedAt == null
+                ? "UNKNOWN"
+                : latestCreatedAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        return "WARNING\n" +
+                "Seller Tax ID: " + sellerTaxId + "; Invoice Number: " + invoiceNumber +
+                "\nDuplicate invoice found in previous batch(es)." +
+                "\nFound in " + batchesByInvoiceId.size() + " batch(es)." +
+                "\nLatest batch: " + latestBatchId + " at " + latestCreatedAtText +
+                "\n(rule: DUPLICATE_CROSS_BATCH)";
     }
 }

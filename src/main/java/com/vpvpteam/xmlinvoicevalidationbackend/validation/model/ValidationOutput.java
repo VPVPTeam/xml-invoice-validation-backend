@@ -2,14 +2,14 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Final batch-level validation result.
@@ -17,28 +17,13 @@ import java.util.stream.Collectors;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 public class ValidationOutput {
-    /**
-     * Batch id (upload/package id).
-     */
-    private String batchId;
+    private final ValidationBatch validationBatch;
 
     /**
      * Overall result status for the whole batch: OK / WARNING / ERROR.
      */
     private Severity status = Severity.OK;
-
-    /**
-     * Unique seller ids found in this batch.
-     */
-    private List<String> listOfVendorIds = new ArrayList<>();
-
-    /**
-     * Unique invoice ids.<br>
-     * Format: sellerTaxId + "|" + invoiceNumber
-     */
-    private List<String> listOfInvoiceIds = new ArrayList<>();
 
     /**
      * All issues collected during validation.
@@ -65,31 +50,8 @@ public class ValidationOutput {
      */
     private int duplicateInvoices = 0;
 
-    /**
-     * Result creation timestamp.
-     */
-    private OffsetDateTime createdAt = OffsetDateTime.now();
-
-    public ValidationOutput(String batchId,
-                            Severity status,
-                            List<String> listOfVendorIds,
-                            List<String> listOfInvoiceIds,
-                            List<ValidationIssue> issues,
-                            int totalInvoices,
-                            int validInvoices,
-                            int invoicesWithIssues,
-                            int duplicateInvoices,
-                            OffsetDateTime createdAt) {
-        this.batchId = batchId;
-        this.status = status;
-        this.listOfVendorIds = listOfVendorIds == null ? new ArrayList<>() : new ArrayList<>(listOfVendorIds);
-        this.listOfInvoiceIds = listOfInvoiceIds == null ? new ArrayList<>() : new ArrayList<>(listOfInvoiceIds);
-        this.issues = issues == null ? new ArrayList<>() : new ArrayList<>(issues);
-        this.totalInvoices = totalInvoices;
-        this.validInvoices = validInvoices;
-        this.invoicesWithIssues = invoicesWithIssues;
-        this.duplicateInvoices = duplicateInvoices;
-        this.createdAt = createdAt == null ? OffsetDateTime.now() : createdAt;
+    public ValidationOutput(ValidationBatch validationBatch) {
+        this.validationBatch = requireNonNull(validationBatch, "validationBatch must not be null");
     }
 
     /**
@@ -135,7 +97,7 @@ public class ValidationOutput {
                 .collect(Collectors.toCollection(HashSet::new));
 
         invoicesWithIssues = invoiceIdsWithIssues.size() - duplicateInvoices;
-        totalInvoices = listOfInvoiceIds.size() + duplicateInvoices;
-        validInvoices = listOfInvoiceIds.size() - invoicesWithIssues;
+        totalInvoices = validationBatch.getListOfInvoiceIds().size() + duplicateInvoices;
+        validInvoices = validationBatch.getListOfInvoiceIds().size() - invoicesWithIssues;
     }
 }
