@@ -3,9 +3,17 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationIssueEntity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
+import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,15 +22,14 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/invoices")
 public final class InvoiceValidationController {
 
     private final ValidationService validationService;
-
-    public InvoiceValidationController(ValidationService validationService) {
-        this.validationService = validationService;
-    }
+    private final ValidationQueryService queryService;
+    private final ValidationPersistenceMapper persistenceMapper;
 
     @PostMapping(
             value = "/validate",
@@ -54,11 +61,36 @@ public final class InvoiceValidationController {
                 xmlFiles.add(new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes())));
             }
 
-            return validationService.validateFiles(xmlFiles);
+            return validationService.validateBatch(xmlFiles);
         } catch (ApiBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new ApiBadRequestException("XML file is invalid: " + ExceptionUtils.safeMessage(ex));
         }
+    }
+
+    @GetMapping("/report/{batchId}")
+    public ValidationOutput getReport(@PathVariable String batchId) {
+        ValidationOutputEntity outputEntity = queryService.getFullReport(batchId)
+                .orElseThrow(() -> new ApiBadRequestException("Batch not found: " + batchId));
+        return persistenceMapper.toModel(outputEntity);
+    }
+
+    @GetMapping("/batches/by-vendor")
+    public List<ValidationBatch> getBatchesByVendor(@RequestParam String vendorId) {
+        List<ValidationBatchEntity> batchEntities = queryService.getBatchesByVendor(vendorId);
+
+        return batchEntities.stream()
+                .map(persistenceMapper::toModel)
+                .toList();
+    }
+
+    @GetMapping("/issues/by-invoice")
+    public List<ValidationIssue> getIssuesByInvoice(@RequestParam String sellerTaxId, @RequestParam String invoiceNumber) {
+        List<ValidationIssueEntity> issueEntities = queryService.getIssuesByInvoice(sellerTaxId, invoiceNumber);
+
+        return issueEntities.stream()
+                .map(persistenceMapper::toModel)
+                .toList();
     }
 }

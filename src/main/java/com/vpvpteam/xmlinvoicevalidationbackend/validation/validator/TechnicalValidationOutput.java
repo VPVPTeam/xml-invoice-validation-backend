@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validators;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
