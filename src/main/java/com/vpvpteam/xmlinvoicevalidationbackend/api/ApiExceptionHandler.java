@@ -2,6 +2,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.api;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,13 @@ public final class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(EntityAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(EntityAlreadyExistsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)    // 409
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
