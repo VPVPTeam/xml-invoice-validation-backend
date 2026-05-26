@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
@@ -16,8 +17,6 @@ import jakarta.persistence.PersistenceContext;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -43,40 +42,30 @@ public class ValidationPersistenceService {
     // Vendor
     @Transactional
     public void save(Vendor vendor) {
-        boolean vendorExists = vendorRepository.findByTaxId(vendor.getTaxId()).isPresent();
-
-        if (vendorExists) {
-            return;
-        }
-
+        checkVendorNotExistsOrThrow(vendor.getTaxId());
         vendorRepository.save(mapper.toEntity(vendor));
     }
 
     @Transactional
     public void update(Vendor vendor) {
-        Optional<VendorEntity> existing = vendorRepository.findByTaxId(vendor.getTaxId());
-        existing.ifPresent(entity -> entity.setName(vendor.getName()));
+        VendorEntity vendorEntity = getVendorEntityOrThrow(vendor.getTaxId());
+        vendorEntity.setName(vendor.getName());
     }
 
     // BusinessRule
     @Transactional
     public void save(BusinessRule rule) {
-        VendorEntity vendorEntity = vendorRepository.findByTaxId(rule.getVendorTaxId())
-                .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + rule.getVendorTaxId()));
-
+        VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
         BusinessRuleEntity ruleEntity = mapper.toEntity(rule, vendorEntity);
+
         businessRuleRepository.save(ruleEntity);
     }
 
     // TODO: ВЫНЕСТИ ПОИСК ЭНТИТИ В ОТДЕЛЬНЫЕ ФУНКЦИИ
     @Transactional
     public void update(BusinessRule rule) {
-        VendorEntity vendorEntity = vendorRepository.findByTaxId(rule.getVendorTaxId())
-                .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + rule.getVendorTaxId()));
-
-        BusinessRuleEntity ruleEntity = businessRuleRepository
-                .findByVendor_IdAndRuleKey(vendorEntity.getId(), rule.getRuleKey())
-                .orElseThrow(() -> new EntityNotFoundException("Rule not found: " + rule.getRuleKey()));
+        VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
+        BusinessRuleEntity ruleEntity = getRuleEntityOrThrow(vendorEntity.getId(), rule.getRuleKey());
 
         ruleEntity.setFieldPath(rule.getFieldPath());
         ruleEntity.setOperator(rule.getOperator());
@@ -86,13 +75,27 @@ public class ValidationPersistenceService {
 
     @Transactional
     public void delete(String vendorTaxId, String ruleKey) {
-        VendorEntity vendorEntity = vendorRepository.findByTaxId(vendorTaxId)
-                .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + vendorTaxId));
-
-        BusinessRuleEntity ruleEntity = businessRuleRepository
-                .findByVendor_IdAndRuleKey(vendorEntity.getId(), ruleKey)
-                .orElseThrow(() -> new EntityNotFoundException("Rule not found: " + ruleKey));
+        VendorEntity vendorEntity = getVendorEntityOrThrow(vendorTaxId);
+        // TODO: ВЕНДОР ЭНТИТИ
+        BusinessRuleEntity ruleEntity = getRuleEntityOrThrow(vendorEntity.getId(), ruleKey);
 
         businessRuleRepository.delete(ruleEntity);
+    }
+
+    private VendorEntity getVendorEntityOrThrow(String taxId) {
+        return vendorRepository.findByTaxId(taxId)
+                .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + taxId));
+    }
+
+    private BusinessRuleEntity getRuleEntityOrThrow(Long vendorId, String ruleKey) {
+        return businessRuleRepository
+                .findByVendor_IdAndRuleKey(vendorId, ruleKey)
+                .orElseThrow(() -> new EntityNotFoundException("Rule not found: " + ruleKey));
+    }
+
+    private void checkVendorNotExistsOrThrow(String vendorTaxId) {
+        if (vendorRepository.findByTaxId(vendorTaxId).isPresent()) {
+            throw new EntityAlreadyExistsException("Vendor already exists:  " + vendorTaxId);
+        }
     }
 }
