@@ -1,4 +1,3 @@
-// TODO: ПРОВЕРИТЬ НАХУЙ НУЖОН
 package com.vpvpteam.xmlinvoicevalidationbackend.api;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;

@@ -61,7 +61,6 @@ public class ValidationPersistenceService {
         businessRuleRepository.save(ruleEntity);
     }
 
-    // TODO: ВЫНЕСТИ ПОИСК ЭНТИТИ В ОТДЕЛЬНЫЕ ФУНКЦИИ
     @Transactional
     public void update(BusinessRule rule) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
@@ -76,12 +75,12 @@ public class ValidationPersistenceService {
     @Transactional
     public void delete(String vendorTaxId, String ruleKey) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(vendorTaxId);
-        // TODO: ВЕНДОР ЭНТИТИ
         BusinessRuleEntity ruleEntity = getRuleEntityOrThrow(vendorEntity.getId(), ruleKey);
 
         businessRuleRepository.delete(ruleEntity);
     }
 
+    // Util methods
     private VendorEntity getVendorEntityOrThrow(String taxId) {
         return vendorRepository.findByTaxId(taxId)
                 .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + taxId));
