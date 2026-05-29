@@ -35,7 +35,7 @@ public final class TechnicalValidationOutput {
      * Creates output with invoice + issue list.
      * Makes defensive copy of incoming issues list.
      */
-    public TechnicalValidationOutput(CanonicalInvoice canonicalInvoice, List<ValidationIssue> issues) {
+    private TechnicalValidationOutput(CanonicalInvoice canonicalInvoice, List<ValidationIssue> issues) {
         this.canonicalInvoice = canonicalInvoice;
         this.issues = Objects.requireNonNullElse(issues, new ArrayList<>());
     }
@@ -51,6 +51,7 @@ public final class TechnicalValidationOutput {
      * Factory method for failed technical validation.
      */
     public static TechnicalValidationOutput failure(List<ValidationIssue> issues) {
+
         return new TechnicalValidationOutput(null, issues);
     }
 
@@ -58,13 +59,8 @@ public final class TechnicalValidationOutput {
      * Returns true if output contains at least one ERROR issue.
      */
     public boolean hasErrors() {
-        return issues != null && issues.stream().anyMatch(i -> i.getSeverity() == Severity.ERROR);
-    }
-
-    /**
-     * Returns true when invoice exists and there are no ERROR issues.
-     */
-    public boolean isValid() {
-        return canonicalInvoice != null && !hasErrors();
+        return issues != null && issues
+                                    .stream()
+                                    .anyMatch(i -> i.getSeverity() == Severity.ERROR);
     }
 }

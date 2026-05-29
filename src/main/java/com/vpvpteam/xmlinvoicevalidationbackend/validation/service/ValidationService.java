@@ -113,7 +113,7 @@ public final class ValidationService {
 
             // 5.5) Run technical validator and merge all returned issues.
             TechnicalValidationOutput techOutput = technicalValidator.validate(dto, xmlFileData.fileName());
-            if (techOutput.getIssues() != null && !techOutput.getIssues().isEmpty()) {
+            if (techOutput.hasErrors()) {
                 allIssues.addAll(techOutput.getIssues());
             }
         }

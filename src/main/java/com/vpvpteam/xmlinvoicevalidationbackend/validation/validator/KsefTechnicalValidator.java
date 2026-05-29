@@ -62,7 +62,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
         //    On mapping exception, convert it into a technical issue.
         try {
             CanonicalInvoice canonicalInvoice = mapper.toCanonical(dto);
-            return new TechnicalValidationOutput(canonicalInvoice, issues);
+            return TechnicalValidationOutput.success(canonicalInvoice);
         } catch (Exception ex) {
             issues.add(ValidationIssue.buildIssue(
                     xmlFileName,
