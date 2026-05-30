@@ -63,4 +63,8 @@ public final class TechnicalValidationOutput {
                                     .stream()
                                     .anyMatch(i -> i.getSeverity() == Severity.ERROR);
     }
+
+    public boolean isValid() {
+        return canonicalInvoice != null && !hasErrors();
+    }
 }
