@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class ValidationPersistenceMapper {
+public final class ValidationPersistenceMapper {
 
     // Batch
     public ValidationBatch toModel(ValidationBatchEntity batchEntity) {

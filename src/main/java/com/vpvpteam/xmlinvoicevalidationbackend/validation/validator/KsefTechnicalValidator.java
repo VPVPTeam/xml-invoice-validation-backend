@@ -6,6 +6,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlD
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +18,7 @@ import java.util.List;
  * Checks required XML fields and then tries canonical mapping.
  */
 @Component
-public final class KsefTechnicalValidator implements TechnicalValidator {
+public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvoiceXmlDto> {
 
     private final KsefInvoiceMapper mapper;
 
@@ -64,7 +65,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
             CanonicalInvoice canonicalInvoice = mapper.toCanonical(dto);
             return TechnicalValidationOutput.success(canonicalInvoice);
         } catch (Exception ex) {
-            issues.add(ValidationIssue.buildIssue(
+            issues.add(new ValidationIssue(
                     xmlFileName,
                     invoiceNumber,
                     sellerTaxId,
@@ -72,7 +73,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                     Severity.ERROR,
                     "TECH_CANONICAL_MAPPING_FAILED",
                     "canonicalInvoice",
-                    ValidationIssue.messageKsefCanonicalMappingFailed(sellerTaxId, invoiceNumber, xmlFileName, ex)
+                    TechnicalIssueMessages.canonicalMappingFailed(sellerTaxId, invoiceNumber, xmlFileName, ex)
             ));
             return TechnicalValidationOutput.failure(issues);
         }
@@ -169,7 +170,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                                List<ValidationIssue> issues) {
         // Converts any failed required-check into a technical issue object.
         if (!condition) {
-            issues.add(ValidationIssue.buildIssue(
+            issues.add(new ValidationIssue(
                     fileName,
                     invoiceNumber,
                     sellerTaxId,
@@ -177,7 +178,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                     Severity.ERROR,
                     "TECH_MISSING_REQUIRED_FIELD",
                     fieldPath,
-                    ValidationIssue.messageKsefMissingRequiredField(sellerTaxId, invoiceNumber, fieldPath)
+                    TechnicalIssueMessages.missingRequiredField(sellerTaxId, invoiceNumber, fieldPath)
             ));
         }
     }

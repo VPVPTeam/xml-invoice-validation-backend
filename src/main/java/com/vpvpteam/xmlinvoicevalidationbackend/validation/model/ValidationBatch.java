@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
-public class ValidationBatch {
+public final class ValidationBatch {
     /**
      * Batch id (upload/package id).
      */

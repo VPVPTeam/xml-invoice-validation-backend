@@ -22,7 +22,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "validation_issue")
-public class ValidationIssueEntity {
+public final class ValidationIssueEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

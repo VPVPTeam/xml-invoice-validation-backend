@@ -8,13 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
-public class OperatorEvaluator {
+public final class OperatorEvaluator {
 
     /**
      * Проверяет, проходит ли actualValue проверку по оператору.
      * Возвращает true = правило соблюдено, false = нарушение.
      */
-    public boolean evaluate(RuleOperator operator, String actualValue, String expectedValue) {
+    public boolean evaluate(String actualValue, String expectedValue, RuleOperator operator) {
 
         // Если фактическое значение null — проверка провалена для любого оператора.
         // Нельзя сравнить "ничего" с ожидаемым значением.
@@ -23,7 +23,7 @@ public class OperatorEvaluator {
         }
 
         return switch (operator) {
-            case EQUALS      -> actualValue.equals(expectedValue);
+            case EQUALS       -> actualValue.equals(expectedValue);
             case NOT_EQUALS   -> !actualValue.equals(expectedValue);
             case GREATER_THAN -> compareNumbers(actualValue, expectedValue) > 0;
             case LESS_THAN    -> compareNumbers(actualValue, expectedValue) < 0;
@@ -45,6 +45,7 @@ public class OperatorEvaluator {
         return actualNum.compareTo(expectedNum);
     }
 
+    // TODO: Подумать можно ли заменить делимитер
     /**
      * BETWEEN: expected_value хранится как "min|max" (например "0|10000").
      * Проверяет: min <= actual <= max.
@@ -59,8 +60,8 @@ public class OperatorEvaluator {
         }
 
         BigDecimal actual = new BigDecimal(actualValue);
-        BigDecimal min = new BigDecimal(parts[0].trim());
-        BigDecimal max = new BigDecimal(parts[1].trim());
+        BigDecimal min = new BigDecimal(parts[0].strip());
+        BigDecimal max = new BigDecimal(parts[1].strip());
 
         // actual >= min AND actual <= max
         return actual.compareTo(min) >= 0 && actual.compareTo(max) <= 0;
@@ -72,7 +73,7 @@ public class OperatorEvaluator {
      */
     private List<String> parseList(String expectedValue) {
         return Arrays.stream(expectedValue.split(","))
-                .map(String::trim)
+                .map(String::strip)
                 .toList();
     }
 }

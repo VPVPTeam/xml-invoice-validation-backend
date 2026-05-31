@@ -1,6 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.exceptions;
 
-public class EntityNotFoundException extends RuntimeException {
+public final class EntityNotFoundException extends RuntimeException {
     public EntityNotFoundException(String message) {
         super(message);
     }

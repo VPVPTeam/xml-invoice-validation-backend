@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Vendor {
+public final class Vendor {
     private Long id;
     private String taxId;
     private String name;

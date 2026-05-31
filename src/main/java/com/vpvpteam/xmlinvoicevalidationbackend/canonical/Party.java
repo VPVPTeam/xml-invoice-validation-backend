@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Party {
+public final class Party {
     private String taxId; // PodmiotX / DaneIdentyfikacyjne / NIP
     private String name; // PodmiotX / DaneIdentyfikacyjne / Nazwa
     private Address address; // PodmiotX / Adres

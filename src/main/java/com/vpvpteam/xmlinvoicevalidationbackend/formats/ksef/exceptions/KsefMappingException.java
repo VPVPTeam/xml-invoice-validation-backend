@@ -5,7 +5,7 @@ package com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.exceptions;
  * We keep ruleKey + fieldPath inside the exception so validators/services
  * can build consistent validation issues later.
  */
-public class KsefMappingException extends RuntimeException {
+public final class KsefMappingException extends RuntimeException {
     private final String ruleKey;
     private final String fieldPath;
 

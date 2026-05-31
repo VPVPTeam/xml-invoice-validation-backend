@@ -4,6 +4,8 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceParser;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
@@ -46,7 +48,7 @@ public final class ValidationService {
 
         // 4) Handle empty batch as a technical error and return early.
         if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            allIssues.add(ValidationIssue.buildIssue(
+            allIssues.add(new ValidationIssue(
                     "",
                     "",
                     "",
@@ -54,7 +56,7 @@ public final class ValidationService {
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
                     "batch",
-                    ValidationIssue.messageTechEmptyBatch()
+                    TechnicalIssueMessages.emptyBatch()
             ));
 
             batch.setListOfVendorIds(List.of());
@@ -71,7 +73,7 @@ public final class ValidationService {
             try {
                 dto = parser.parse(xmlFileData.xmlInputStream());
             } catch (Exception ex) {
-                allIssues.add(ValidationIssue.buildIssue(
+                allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
                         "",
                         "",
@@ -79,7 +81,7 @@ public final class ValidationService {
                         Severity.ERROR,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
-                        ValidationIssue.messageTechXmlParseError(xmlFileData.fileName(), ex)
+                        TechnicalIssueMessages.xmlParseError(xmlFileData.fileName(), ex)
                 ));
                 continue;
             }
@@ -96,7 +98,7 @@ public final class ValidationService {
             // 5.4) Detect duplicates inside the same batch.
             //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
-                allIssues.add(ValidationIssue.buildIssue(
+                allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
                         invoiceNumber,
                         sellerTaxId,
@@ -104,7 +106,7 @@ public final class ValidationService {
                         Severity.WARNING,
                         "DUPLICATE_IN_BATCH",
                         "invoiceId",
-                        ValidationIssue.messageDuplicateInBatch(sellerTaxId, invoiceNumber)
+                        DuplicateIssueMessages.duplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
 
                 output.increaseDuplicateInvoicesCount();

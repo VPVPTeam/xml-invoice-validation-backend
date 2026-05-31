@@ -7,21 +7,22 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Component
-public class FieldValueExtractor {
+public final class FieldValueExtractor {
 
     // Маппинг: field_path из БД → функция, которая достаёт значение из CanonicalInvoice.
     // Каждая запись говорит: "если field_path = X, вызови функцию Y на invoice".
     // Все значения приводим к String, потому что expected_value в БД — тоже String.
     private static final Map<String, Function<CanonicalInvoice, String>> EXTRACTORS = Map.ofEntries(
 
-            // --- header ---
+            // TODO: Вынести
+            //  Header
             Map.entry("header.invoiceNumber",
                     inv -> inv.getHeader().getInvoiceNumber()),
 
             Map.entry("header.issueDate",
                     inv -> inv.getHeader().getIssueDate()),
 
-            // --- header.seller ---
+            // Header.seller
             Map.entry("header.seller.taxId",
                     inv -> inv.getHeader().getSeller().getTaxId()),
 
@@ -34,7 +35,7 @@ public class FieldValueExtractor {
             Map.entry("header.seller.address.addressLine1",
                     inv -> inv.getHeader().getSeller().getAddress().getAddressLine1()),
 
-            // --- header.buyer ---
+            // Header.buyer
             Map.entry("header.buyer.taxId",
                     inv -> inv.getHeader().getBuyer().getTaxId()),
 
@@ -47,7 +48,7 @@ public class FieldValueExtractor {
             Map.entry("header.buyer.address.addressLine1",
                     inv -> inv.getHeader().getBuyer().getAddress().getAddressLine1()),
 
-            // --- totals ---
+            // Totals
             Map.entry("totals.currencyCode",
                     inv -> inv.getTotals().getCurrencyCode()),
 
@@ -74,6 +75,7 @@ public class FieldValueExtractor {
             return null;
         }
 
+        // TODO: Отхэндлить
         try {
             // Вызываем функцию. try/catch ловит NullPointerException,
             // если промежуточный объект null (например header.seller = null).

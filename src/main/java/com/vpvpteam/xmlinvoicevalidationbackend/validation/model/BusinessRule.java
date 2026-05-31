@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BusinessRule {
+public final class BusinessRule {
     private Long id;
     private String vendorTaxId;
     private String ruleKey;

@@ -17,7 +17,7 @@ import static java.util.Objects.requireNonNull;
  */
 @Getter
 @Setter
-public class ValidationOutput {
+public final class ValidationOutput {
     private final ValidationBatch validationBatch;
 
     /**

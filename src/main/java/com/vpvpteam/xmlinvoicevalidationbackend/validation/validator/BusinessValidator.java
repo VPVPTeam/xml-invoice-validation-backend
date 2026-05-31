@@ -14,7 +14,7 @@ import java.util.List;
 
 @Component
 @AllArgsConstructor
-public class BusinessValidator {
+public final class BusinessValidator {
 
     private final BusinessRuleRepository businessRuleRepository;
     private final FieldValueExtractor fieldValueExtractor;
@@ -50,14 +50,14 @@ public class BusinessValidator {
             // 3.2) Сравниваем фактическое значение с ожидаемым по оператору.
             //      Например: "EUR" EQUALS "PLN" → false (нарушение)
             boolean passed = operatorEvaluator.evaluate(
-                    rule.getOperator(),
                     actualValue,
-                    rule.getExpectedValue()
+                    rule.getExpectedValue(),
+                    rule.getOperator()
             );
 
             // 3.3) Если проверка не прошла — создаём ValidationIssue.
             if (!passed) {
-                issues.add(ValidationIssue.buildIssue(
+                issues.add(new ValidationIssue(
                         fileName,
                         invoiceNumber,
                         sellerTaxId,

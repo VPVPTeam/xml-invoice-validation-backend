@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "business_rule")
-public class BusinessRuleEntity {
+public final class BusinessRuleEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
