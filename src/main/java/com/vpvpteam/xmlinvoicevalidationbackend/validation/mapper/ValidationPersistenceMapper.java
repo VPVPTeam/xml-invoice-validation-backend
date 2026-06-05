@@ -122,7 +122,7 @@ public final class ValidationPersistenceMapper {
         Vendor vendor = new Vendor();
 
         vendor.setId(entity.getId());
-        vendor.setName(entity.getTaxId());
+        vendor.setTaxId(entity.getTaxId());
         vendor.setName(entity.getName());
 
         return vendor;

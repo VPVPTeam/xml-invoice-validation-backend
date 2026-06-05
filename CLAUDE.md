@@ -1,5 +1,15 @@
 # CLAUDE.md — XML Invoice Validation Backend
 
+## Режим работы
+- НЕ модифицировать файлы в репозитории. НЕ создавать, НЕ редактировать, НЕ удалять файлы. НЕ делать git commit/push.
+- Роль — консультант: читать и сканировать код, писать весь новый/изменённый код в чат. Команда сама вставляет код в проект.
+- Можно использовать Read, Grep, Glob для анализа кодовой базы. Нельзя использовать Write, Edit, Bash для модификации файлов или git-операций.
+
+## Объяснение кода
+- Объяснять код как для начинающих разработчиков. Не предполагать знание продвинутых конструкций Java или внутренностей Spring.
+- Каждую нетривиальную конструкцию (generic'и, Stream API, аннотации Spring, паттерны проектирования) сопровождать коротким пояснением: что делает и зачем.
+- Примеры: что такое `@Component`, зачем `List<FormatProcessor>` в конструкторе, как работает `Collectors.toMap()`, что значит `Function.identity()`.
+
 ## Что это за проект
 
 Бэкенд-система для валидации электронных фактур (XML). Принимает пакет XML-файлов через REST API, проводит техническую и бизнес-валидацию, сохраняет результаты в PostgreSQL.
@@ -96,117 +106,7 @@ ValidationService.validateBatch()
 ## База данных — PostgreSQL
 
 Таблицы создаются ВРУЧНУЮ (не Flyway). Hibernate ddl-auto: validate.
-
-```sql
-CREATE TABLE validation_batch (
-                                  id         BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                                  batch_id   VARCHAR(36) NOT NULL UNIQUE,
-                                  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-
-CREATE TABLE batch_vendor (
-                              id        BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                              validation_batch_id  BIGINT      NOT NULL,
-                              vendor_id VARCHAR(50) NOT NULL,
-                              CONSTRAINT fk_batch_vendor_batch
-                                  FOREIGN KEY (validation_batch_id) REFERENCES validation_batch (id)
-                                      ON DELETE CASCADE,
-                              CONSTRAINT uq_batch_vendor UNIQUE (validation_batch_id, vendor_id)
-);
-
-CREATE TABLE batch_invoice (
-                               id         BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                               validation_batch_id   BIGINT       NOT NULL,
-                               invoice_id VARCHAR(100) NOT NULL,
-                               CONSTRAINT fk_batch_invoice_batch
-                                   FOREIGN KEY (validation_batch_id) REFERENCES validation_batch (id)
-                                       ON DELETE CASCADE,
-                               CONSTRAINT uq_batch_invoice UNIQUE (validation_batch_id, invoice_id)
-);
-
-CREATE TABLE validation_output (
-                                   id                   BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                                   validation_batch_id             BIGINT      NOT NULL UNIQUE,
-                                   status               VARCHAR(20) NOT NULL DEFAULT 'OK',
-                                   total_invoices       INT         NOT NULL DEFAULT 0,
-                                   valid_invoices       INT         NOT NULL DEFAULT 0,
-                                   invoices_with_issues INT         NOT NULL DEFAULT 0,
-                                   duplicate_invoices   INT         NOT NULL DEFAULT 0,
-
-                                   CONSTRAINT fk_output_batch
-                                       FOREIGN KEY (validation_batch_id) REFERENCES validation_batch (id)
-                                           ON DELETE CASCADE,
-
-                                   CONSTRAINT chk_status
-                                       CHECK (status IN ('OK', 'WARNING', 'ERROR'))
-);
-
-CREATE TABLE validation_issue (
-                                  id             BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                                  validation_output_id      BIGINT       NOT NULL,
-                                  file_name      VARCHAR(255),
-                                  invoice_number VARCHAR(50),
-                                  seller_tax_id  VARCHAR(50),
-                                  severity       VARCHAR(20)  NOT NULL,
-                                  stage          VARCHAR(20)  NOT NULL,
-                                  rule_key       VARCHAR(100) NOT NULL,
-                                  field_path     VARCHAR(100),
-
-                                  CONSTRAINT fk_issue_output
-                                      FOREIGN KEY (validation_output_id) REFERENCES validation_output (id)
-                                          ON DELETE CASCADE,
-
-                                  CONSTRAINT chk_severity
-                                      CHECK (severity IN ('ERROR', 'WARNING')),
-
-                                  CONSTRAINT chk_stage
-                                      CHECK (stage IN ('TECHNICAL', 'BUSINESS'))
-);
-
-CREATE INDEX idx_validation_issue_validation_output_id ON validation_issue (validation_output_id);
-
-CREATE INDEX idx_batch_invoice_invoice_id ON batch_invoice (invoice_id);
-CREATE INDEX idx_batch_vendor_vendor_id   ON batch_vendor  (vendor_id);
-
-CREATE TABLE vendor (
-                        id     BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                        tax_id VARCHAR(50) NOT NULL UNIQUE,
-                        name   VARCHAR(255)
-);
-
-CREATE TABLE business_rule (
-                               id             BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                               vendor_id      BIGINT       NOT NULL,
-                               rule_key       VARCHAR(100) NOT NULL,
-                               field_path     VARCHAR(100) NOT NULL,
-                               operator       VARCHAR(30)  NOT NULL,
-                               expected_value VARCHAR(255) NOT NULL,
-                               created_by     VARCHAR(100) NOT NULL DEFAULT 'system',
-
-                               CONSTRAINT fk_business_rule_vendor
-                                   FOREIGN KEY (vendor_id) REFERENCES vendor (id)
-                                       ON DELETE CASCADE,
-
-                               CONSTRAINT uq_business_rule_vendor_field
-                                   UNIQUE (vendor_id, field_path),
-
-                               CONSTRAINT uq_business_rule_vendor_key
-                                   UNIQUE (vendor_id, rule_key),
-
-                               CONSTRAINT chk_business_rule_operator
-                                   CHECK (operator IN (
-                                                       'EQUALS',
-                                                       'NOT_EQUALS',
-                                                       'GREATER_THAN',
-                                                       'LESS_THAN',
-                                                       'BETWEEN',
-                                                       'IN',
-                                                       'NOT_IN',
-                                                       'CONTAINS'
-                                       ))
-);
-```
+Таблицы хранятся в schema.sql в корневой директории проекта.
 
 ## Правила кода
 
