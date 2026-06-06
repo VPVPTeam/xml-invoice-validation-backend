@@ -21,43 +21,25 @@ import java.util.Objects;
 @NoArgsConstructor
 public final class TechnicalValidationOutput {
 
-    /**
-     * Null when technical validation/mapping failed.
-     */
     private CanonicalInvoice canonicalInvoice;
-
-    /**
-     * Technical issues found during validation.
-     */
     private List<ValidationIssue> issues = new ArrayList<>();
+    private String sellerTaxId;
+    private String invoiceNumber;
 
-    /**
-     * Creates output with invoice + issue list.
-     * Makes defensive copy of incoming issues list.
-     */
     private TechnicalValidationOutput(CanonicalInvoice canonicalInvoice, List<ValidationIssue> issues) {
         this.canonicalInvoice = canonicalInvoice;
         this.issues = Objects.requireNonNullElse(issues, new ArrayList<>());
     }
 
-    /**
-     * Factory method for successful technical validation.
-     */
     public static TechnicalValidationOutput success(CanonicalInvoice canonicalInvoice) {
         return new TechnicalValidationOutput(canonicalInvoice, List.of());
     }
 
-    /**
-     * Factory method for failed technical validation.
-     */
     public static TechnicalValidationOutput failure(List<ValidationIssue> issues) {
 
         return new TechnicalValidationOutput(null, issues);
     }
 
-    /**
-     * Returns true if output contains at least one ERROR issue.
-     */
     public boolean hasErrors() {
         return issues != null && issues
                                     .stream()

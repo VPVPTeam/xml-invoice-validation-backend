@@ -27,7 +27,6 @@ import java.util.function.Function;
 @RestController
 @RequestMapping("/api/invoices")
 public final class InvoiceValidationController {
-
     private final ValidationService validationService;
     private final ValidationQueryService queryService;
     private final ValidationPersistenceMapper persistenceMapper;
@@ -37,9 +36,15 @@ public final class InvoiceValidationController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ValidationOutput validateXmlInputs(@RequestParam("file") List<MultipartFile> files) {
+    public ValidationOutput validateXmlInputs(@RequestParam("file") List<MultipartFile> files,
+                                              @RequestParam("format") String format) {
         if (files == null || files.isEmpty()) {
             throw new ApiBadRequestException("Empty batch");
+        }
+
+        if (!validationService.getSupportedFormats().contains(format)) {
+            throw new ApiBadRequestException("Unsupported format: " + format
+                    + ". Supported: " + validationService.getSupportedFormats());
         }
 
         try {
@@ -62,7 +67,7 @@ public final class InvoiceValidationController {
                 xmlFiles.add(new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes())));
             }
 
-            return validationService.validateBatch(xmlFiles);
+            return validationService.validateBatch(xmlFiles, format);
         } catch (ApiBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {
