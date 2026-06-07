@@ -1,7 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceParser;
-import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
+import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
@@ -11,47 +10,49 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidator;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Service that validates a batch of XML invoice/invoices.
  * Orchestrates parsing, duplicate checks, technical validation and business validation.
  */
 @Service
-@AllArgsConstructor
 public final class ValidationService {
+    private final Map<String, FormatProcessor> processors;
     private final ValidationPersistenceService persistenceService;
-    private final KsefInvoiceParser parser;
-    private final TechnicalValidator technicalValidator;
 
     /**
      * Runs validation for a batch of XML inputs and returns ValidationOutput.
      */
-    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData) {
-        // 1a) Create ValidationBatch object.
-        ValidationBatch batch = new ValidationBatch();
+    public ValidationService(List<FormatProcessor> processorList, ValidationPersistenceService persistenceService) {
+        this.processors = processorList.stream()
+                .collect(Collectors.toMap(FormatProcessor::getFormatName,
+                        Function.identity()));
+        this.persistenceService = persistenceService;
+    }
 
-        // 1b) Create ValidationOutput object and attach batch.
+    public Set<String> getSupportedFormats() {
+        return Collections.unmodifiableSet(processors.keySet());
+    }
+
+    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String format) {
+        FormatProcessor processor = processors.get(format);
+
+        ValidationBatch batch = new ValidationBatch();
         ValidationOutput output = new ValidationOutput(batch);
 
-        // 2) Prepare accumulators for issues and summary id lists.
         List<ValidationIssue> allIssues = new ArrayList<>();
         Set<String> vendorIds = new LinkedHashSet<>();
         Set<String> invoiceIds = new LinkedHashSet<>();
-
-        // 3) Keep a set of invoice ids seen in this batch for duplicate detection.
         Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
-        // 4) Handle empty batch as a technical error and return early.
         if (xmlFilesData == null || xmlFilesData.isEmpty()) {
             allIssues.add(new ValidationIssue(
-                    "",
-                    "",
-                    "",
+                    "", "", "",
                     ValidationStage.TECHNICAL,
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
@@ -66,12 +67,10 @@ public final class ValidationService {
             return output;
         }
 
-        // 5) Validate each XML invoice independently and merge issues if present.
         for (XmlFileData xmlFileData : xmlFilesData) {
-            // 5.1) Parse XML into DTO. On parse failure, add issue and continue with next file.
-            KsefInvoiceXmlDto dto;
+            TechnicalValidationOutput techOutput;
             try {
-                dto = parser.parse(xmlFileData.xmlInputStream());
+                techOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
             } catch (Exception ex) {
                 allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
@@ -86,17 +85,13 @@ public final class ValidationService {
                 continue;
             }
 
-            // 5.2) Extract safe identifiers used for deduplication and reporting.
-            String sellerTaxId = dto.safeSellerTaxId();
-            String invoiceNumber = dto.safeInvoiceNumber();
+            String sellerTaxId = techOutput.getSellerTaxId();
+            String invoiceNumber = techOutput.getInvoiceNumber();
             String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
-            // 5.3) Collect ids for batch-level summary.
             vendorIds.add(sellerTaxId);
             invoiceIds.add(invoiceId);
 
-            // 5.4) Detect duplicates inside the same batch.
-            //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
                 allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
@@ -108,19 +103,15 @@ public final class ValidationService {
                         "invoiceId",
                         DuplicateIssueMessages.duplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
-
                 output.increaseDuplicateInvoicesCount();
                 continue;
             }
 
-            // 5.5) Run technical validator and merge all returned issues.
-            TechnicalValidationOutput techOutput = technicalValidator.validate(dto, xmlFileData.fileName());
             if (techOutput.hasErrors()) {
                 allIssues.addAll(techOutput.getIssues());
             }
         }
 
-        // 6) Build final batch ValidationOutput from accumulated data.
         batch.setListOfVendorIds(new ArrayList<>(vendorIds));
         batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
         output.setIssues(allIssues);
