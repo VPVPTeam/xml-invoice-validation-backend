@@ -1,6 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.formats;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
 
 import java.io.InputStream;
 

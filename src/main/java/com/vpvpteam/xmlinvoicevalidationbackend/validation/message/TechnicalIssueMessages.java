@@ -3,7 +3,6 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.message;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 
 public final class TechnicalIssueMessages {
-
     private TechnicalIssueMessages() {}
 
     public static String emptyBatch() {

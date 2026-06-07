@@ -26,8 +26,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "validation_output")
-public final class ValidationOutputEntity {
-
+public class ValidationOutputEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

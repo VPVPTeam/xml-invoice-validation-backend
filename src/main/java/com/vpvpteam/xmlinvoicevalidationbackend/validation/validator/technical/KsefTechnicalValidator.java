@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceMapper;
@@ -19,7 +19,6 @@ import java.util.List;
  */
 @Component
 public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvoiceXmlDto> {
-
     private final KsefInvoiceMapper mapper;
 
     public KsefTechnicalValidator(KsefInvoiceMapper mapper) {

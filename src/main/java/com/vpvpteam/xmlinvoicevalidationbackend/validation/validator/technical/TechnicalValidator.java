@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.InvoiceXmlDto;
 
@@ -7,8 +7,5 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.InvoiceXmlDto;
  * Implementations validate invoice DTO and return validation output.
  */
 public interface TechnicalValidator<T extends InvoiceXmlDto> {
-    /**
-     * Runs technical validation for invoice DTO.
-     */
     TechnicalValidationOutput validate(T dto, String xmlFileName);
 }

@@ -19,15 +19,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@AllArgsConstructor
 public class ValidationPersistenceService {
-
     @PersistenceContext
     private EntityManager entityManager;
 
     private final ValidationPersistenceMapper mapper;
     private final VendorRepository vendorRepository;
     private final BusinessRuleRepository businessRuleRepository;
+
+    public ValidationPersistenceService(ValidationPersistenceMapper mapper, VendorRepository vendorRepository, BusinessRuleRepository businessRuleRepository) {
+        this.mapper = mapper;
+        this.vendorRepository = vendorRepository;
+        this.businessRuleRepository = businessRuleRepository;
+    }
 
     // ValidationOutput
     @Transactional
@@ -50,6 +54,12 @@ public class ValidationPersistenceService {
     public void update(Vendor vendor) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(vendor.getTaxId());
         vendorEntity.setName(vendor.getName());
+    }
+
+    @Transactional
+    public void deleteVendor(String taxId) {
+        VendorEntity vendorEntity = getVendorEntityOrThrow(taxId);
+        vendorRepository.delete(vendorEntity);
     }
 
     // BusinessRule

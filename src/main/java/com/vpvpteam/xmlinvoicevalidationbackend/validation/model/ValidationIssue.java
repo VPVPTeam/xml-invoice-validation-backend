@@ -20,12 +20,12 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public final class ValidationIssue {
-    private String fileName; // original name of XML file
+    private String fileName;
     private String invoiceNumber;
     private String sellerTaxId;
-    private ValidationStage stage; // "TECHNICAL", "BUSINESS"
-    private Severity severity; // "ERROR", "WARNING"
-    private String ruleKey; // e.g. "TECH_MISSING_REQUIRED_FIELD"
-    private String fieldPath; // e.g. "seller.taxId", "Fa.P_2"
-    private String message; // human-readable message
+    private ValidationStage stage;
+    private Severity severity;
+    private String ruleKey;
+    private String fieldPath;
+    private String message;
 }

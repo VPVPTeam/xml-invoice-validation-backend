@@ -2,8 +2,8 @@ package com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.KsefTechnicalValidator;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.KsefTechnicalValidator;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +12,6 @@ import java.io.InputStream;
 @Component
 @AllArgsConstructor
 public final class KsefFormatProcessor implements FormatProcessor {
-
     private final KsefInvoiceParser parser;
     private final KsefTechnicalValidator technicalValidator;
 

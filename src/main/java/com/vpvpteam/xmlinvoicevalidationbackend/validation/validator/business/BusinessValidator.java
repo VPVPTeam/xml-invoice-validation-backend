@@ -1,9 +1,10 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.BusinessIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRuleRepository;
 import lombok.AllArgsConstructor;
@@ -15,48 +16,40 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 public final class BusinessValidator {
-
     private final BusinessRuleRepository businessRuleRepository;
     private final FieldValueExtractor fieldValueExtractor;
     private final OperatorEvaluator operatorEvaluator;
 
-    /**
-     * Запускает бизнес-валидацию фактуры по правилам вендора.
-     * Возвращает список нарушений. Пустой список = все правила соблюдены.
-     */
-    public List<ValidationIssue> validate(CanonicalInvoice invoice, String fileName) {
-
+    public BusinessValidationOutput validate(CanonicalInvoice invoice, String fileName) {
         List<ValidationIssue> issues = new ArrayList<>();
 
-        // 1) Достаём sellerTaxId из фактуры — по нему ищем правила вендора.
         String sellerTaxId = invoice.getHeader().getSeller().getTaxId();
         String invoiceNumber = invoice.getHeader().getInvoiceNumber();
 
-        // 2) Загружаем все бизнес-правила для этого вендора из БД.
-        //    Если у вендора нет правил — возвращаем пустой список (нет нарушений).
         List<BusinessRuleEntity> rules = businessRuleRepository.findByVendor_TaxId(sellerTaxId);
 
         if (rules.isEmpty()) {
-            return issues;
+            return BusinessValidationOutput.of(issues);
         }
 
-        // 3) Проверяем каждое правило.
         for (BusinessRuleEntity rule : rules) {
-
-            // 3.1) Извлекаем фактическое значение поля из фактуры по field_path.
-            //      Например: "totals.currencyCode" → "EUR"
             String actualValue = fieldValueExtractor.extract(invoice, rule.getFieldPath());
 
-            // 3.2) Сравниваем фактическое значение с ожидаемым по оператору.
-            //      Например: "EUR" EQUALS "PLN" → false (нарушение)
             boolean passed = operatorEvaluator.evaluate(
                     actualValue,
                     rule.getExpectedValue(),
                     rule.getOperator()
             );
 
-            // 3.3) Если проверка не прошла — создаём ValidationIssue.
             if (!passed) {
+                String message = BusinessIssueMessages.ruleViolation(
+                        rule.getRuleKey(),
+                        rule.getFieldPath(),
+                        rule.getOperator(),
+                        rule.getExpectedValue(),
+                        actualValue
+                );
+
                 issues.add(new ValidationIssue(
                         fileName,
                         invoiceNumber,
@@ -65,22 +58,11 @@ public final class BusinessValidator {
                         Severity.ERROR,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
-                        buildMessage(rule, actualValue)
+                        message
                 ));
             }
         }
 
-        return issues;
-    }
-
-    /**
-     * Формирует человекочитаемое сообщение об ошибке.
-     */
-    //
-    private String buildMessage(BusinessRuleEntity rule, String actualValue) {
-        return "Business rule violation: " + rule.getRuleKey()
-                + ". Field '" + rule.getFieldPath() + "'"
-                + " expected " + rule.getOperator() + " '" + rule.getExpectedValue() + "'"
-                + ", got '" + actualValue + "'";
+        return BusinessValidationOutput.of(issues);
     }
 }

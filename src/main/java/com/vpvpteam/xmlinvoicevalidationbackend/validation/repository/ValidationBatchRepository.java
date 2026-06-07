@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ValidationBatchRepository extends JpaRepository<ValidationBatchEntity, Long> {
-
     @Query("SELECT batch FROM ValidationBatchEntity batch " +
             "JOIN batch.vendorIds vendor " +
             "WHERE vendor = :vendorId " +

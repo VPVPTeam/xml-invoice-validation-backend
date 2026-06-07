@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
@@ -20,7 +20,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 public final class TechnicalValidationOutput {
-
     private CanonicalInvoice canonicalInvoice;
     private List<ValidationIssue> issues = new ArrayList<>();
     private String sellerTaxId;

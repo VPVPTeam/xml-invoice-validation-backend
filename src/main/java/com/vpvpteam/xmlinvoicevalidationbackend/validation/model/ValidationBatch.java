@@ -11,25 +11,9 @@ import java.util.UUID;
 @Getter
 @Setter
 public final class ValidationBatch {
-    /**
-     * Batch id (upload/package id).
-     */
     private final String batchId;
-
-    /**
-     * Result creation timestamp.
-     */
     private final OffsetDateTime createdAt;
-
-    /**
-     * Unique seller ids found in this batch.
-     */
     private List<String> listOfVendorIds = new ArrayList<>();
-
-    /**
-     * Unique invoice ids.<br>
-     * Format: sellerTaxId + "|" + invoiceNumber
-     */
     private List<String> listOfInvoiceIds = new ArrayList<>();
 
     public ValidationBatch() {

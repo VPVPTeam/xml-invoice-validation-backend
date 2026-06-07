@@ -9,7 +9,6 @@ import java.util.List;
 
 @Component
 public final class ValidationPersistenceMapper {
-
     // Batch
     public ValidationBatch toModel(ValidationBatchEntity batchEntity) {
         ValidationBatch batch = new ValidationBatch(batchEntity.getBatchId(), batchEntity.getCreatedAt());
@@ -32,7 +31,6 @@ public final class ValidationPersistenceMapper {
     }
 
     // Output
-
     public ValidationOutput toModel(ValidationOutputEntity outputEntity) {
         ValidationBatch batch = toModel(outputEntity.getValidationBatch());
         ValidationOutput output = new ValidationOutput(batch);
@@ -65,7 +63,6 @@ public final class ValidationPersistenceMapper {
     }
 
     // Issue
-
     public ValidationIssue toModel(ValidationIssueEntity issueEntity) {
         ValidationIssue issue = new ValidationIssue();
 
@@ -115,9 +112,7 @@ public final class ValidationPersistenceMapper {
         return result;
     }
 
-
     // Vendor
-
     public Vendor toModel(VendorEntity entity) {
         Vendor vendor = new Vendor();
 

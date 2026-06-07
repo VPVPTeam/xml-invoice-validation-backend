@@ -9,7 +9,9 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidator;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,15 +25,14 @@ import java.util.stream.Collectors;
 @Service
 public final class ValidationService {
     private final Map<String, FormatProcessor> processors;
+    private final BusinessValidator businessValidator;
     private final ValidationPersistenceService persistenceService;
 
-    /**
-     * Runs validation for a batch of XML inputs and returns ValidationOutput.
-     */
-    public ValidationService(List<FormatProcessor> processorList, ValidationPersistenceService persistenceService) {
-        this.processors = processorList.stream()
-                .collect(Collectors.toMap(FormatProcessor::getFormatName,
-                        Function.identity()));
+    public ValidationService(List<FormatProcessor> processorList, BusinessValidator businessValidator, ValidationPersistenceService persistenceService) {
+        this.processors = processorList.stream().collect(Collectors.toMap(FormatProcessor::getFormatName,
+                                                                          Function.identity()));
+
+        this.businessValidator = businessValidator;
         this.persistenceService = persistenceService;
     }
 
@@ -68,9 +69,9 @@ public final class ValidationService {
         }
 
         for (XmlFileData xmlFileData : xmlFilesData) {
-            TechnicalValidationOutput techOutput;
+            TechnicalValidationOutput technicalOutput;
             try {
-                techOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
+                technicalOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
             } catch (Exception ex) {
                 allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
@@ -85,8 +86,8 @@ public final class ValidationService {
                 continue;
             }
 
-            String sellerTaxId = techOutput.getSellerTaxId();
-            String invoiceNumber = techOutput.getInvoiceNumber();
+            String sellerTaxId = technicalOutput.getSellerTaxId();
+            String invoiceNumber = technicalOutput.getInvoiceNumber();
             String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
             vendorIds.add(sellerTaxId);
@@ -107,9 +108,16 @@ public final class ValidationService {
                 continue;
             }
 
-            if (techOutput.hasErrors()) {
-                allIssues.addAll(techOutput.getIssues());
+            if (technicalOutput.hasErrors()) {
+                allIssues.addAll(technicalOutput.getIssues());
+                continue;
             }
+
+            BusinessValidationOutput businessOutput = businessValidator.validate(
+                    technicalOutput.getCanonicalInvoice(),
+                    xmlFileData.fileName()
+            );
+            allIssues.addAll(businessOutput.getIssues());
         }
 
         batch.setListOfVendorIds(new ArrayList<>(vendorIds));

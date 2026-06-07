@@ -3,7 +3,6 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.message;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.RuleOperator;
 
 public final class BusinessIssueMessages {
-
     private BusinessIssueMessages() {}
 
     public static String ruleViolation(String ruleKey,

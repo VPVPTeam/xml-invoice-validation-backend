@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.RuleOperator;
 import org.springframework.stereotype.Component;

@@ -13,7 +13,6 @@ import java.util.Map;
 
 @Repository
 public class ValidationBatchDao {
-
     @PersistenceContext
     private EntityManager entityManager;
 

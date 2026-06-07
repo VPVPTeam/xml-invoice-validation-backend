@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public final class DuplicateIssueMessages {
-
     private DuplicateIssueMessages() {}
 
     public static String duplicateInBatch(String sellerTaxId, String invoiceNumber) {

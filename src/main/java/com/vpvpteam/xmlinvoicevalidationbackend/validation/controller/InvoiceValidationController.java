@@ -5,12 +5,12 @@ import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestExce
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationIssueEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.VendorEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.*;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
 import lombok.AllArgsConstructor;
@@ -19,13 +19,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
 @AllArgsConstructor
 @RestController
-@RequestMapping("/api/invoices")
+@RequestMapping("/api/validation")
 public final class InvoiceValidationController {
     private final ValidationService validationService;
     private final ValidationQueryService queryService;
@@ -49,7 +50,6 @@ public final class InvoiceValidationController {
 
         try {
             List<XmlFileData> xmlFiles = new ArrayList<>(files.size());
-
 
             for (MultipartFile file : files) {
                 if (file == null) {
@@ -78,7 +78,7 @@ public final class InvoiceValidationController {
     @GetMapping("/report/{batchId}")
     public ValidationOutput getReport(@PathVariable String batchId) {
         ValidationOutputEntity outputEntity = queryService.getFullReport(batchId)
-                .orElseThrow(() -> new ApiBadRequestException("Batch not found: " + batchId));
+                .orElseThrow(() -> new EntityNotFoundException("Batch not found: " + batchId));
 
         return persistenceMapper.toModel(outputEntity);
     }
@@ -94,7 +94,8 @@ public final class InvoiceValidationController {
     }
 
     @GetMapping("/issues/by-invoice")
-    public ListResponse<ValidationIssue> getIssuesByInvoice(@RequestParam String sellerTaxId, @RequestParam String invoiceNumber) {
+    public ListResponse<ValidationIssue> getIssuesByInvoice(@RequestParam String sellerTaxId,
+                                                            @RequestParam String invoiceNumber) {
         List<ValidationIssue> issues = queryService.getIssuesByInvoice(sellerTaxId, invoiceNumber)
                 .stream()
                 .map(persistenceMapper::toModel)
@@ -103,21 +104,10 @@ public final class InvoiceValidationController {
         return ListResponse.of(issues);
     }
 
-    @GetMapping("/rules/by-vendor")
-    public ListResponse<BusinessRule> getRulesByVendor(@RequestParam String vendorTaxId) {
-        List<BusinessRule> rules = queryService.getRulesByVendorTaxId(vendorTaxId)
-                .stream()
-                .map(persistenceMapper::toModel)
-                .toList();
-
-        return ListResponse.of(rules);
-    }
-
-    @GetMapping("/vendor/{taxId}")
-    public Vendor getVendor(@PathVariable String taxId) {
-        VendorEntity vendorEntity = queryService.getVendorByTaxId(taxId)
-                .orElseThrow(() -> new EntityNotFoundException("Vendor not found: " + taxId));
-
-        return persistenceMapper.toModel(vendorEntity);
+    @GetMapping("/batches/by-invoice")
+    public Map<String, OffsetDateTime> getBatchesByInvoice(@RequestParam String sellerTaxId,
+                                                           @RequestParam String invoiceNumber) {
+        String invoiceId = sellerTaxId + "|" + invoiceNumber;
+        return queryService.getBatchesByInvoiceId(invoiceId);
     }
 }

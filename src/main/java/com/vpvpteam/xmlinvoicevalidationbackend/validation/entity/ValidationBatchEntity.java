@@ -24,8 +24,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "validation_batch")
-public final class ValidationBatchEntity {
-
+public class ValidationBatchEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
