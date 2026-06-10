@@ -1,7 +1,9 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalFieldRegistry;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
@@ -14,7 +16,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRu
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.VendorRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +67,10 @@ public class ValidationPersistenceService {
     @Transactional
     public void save(BusinessRule rule) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
+
+        checkFieldPathSupportedOrThrow(rule.getFieldPath());
+        checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
+
         BusinessRuleEntity ruleEntity = mapper.toEntity(rule, vendorEntity);
 
         businessRuleRepository.save(ruleEntity);
@@ -75,6 +80,11 @@ public class ValidationPersistenceService {
     public void update(BusinessRule rule) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
         BusinessRuleEntity ruleEntity = getRuleEntityOrThrow(vendorEntity.getId(), rule.getRuleKey());
+
+        if (!ruleEntity.getFieldPath().equals(rule.getFieldPath())) {
+            checkFieldPathSupportedOrThrow(rule.getFieldPath());
+            checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
+        }
 
         ruleEntity.setFieldPath(rule.getFieldPath());
         ruleEntity.setOperator(rule.getOperator());
@@ -105,6 +115,18 @@ public class ValidationPersistenceService {
     private void checkVendorNotExistsOrThrow(String vendorTaxId) {
         if (vendorRepository.findByTaxId(vendorTaxId).isPresent()) {
             throw new EntityAlreadyExistsException("Vendor already exists:  " + vendorTaxId);
+        }
+    }
+
+    private void checkRuleFieldPathUniqueForVendorOrThrow(Long vendorId, String fieldPath) {
+        if (businessRuleRepository.findByVendor_IdAndFieldPath(vendorId, fieldPath).isPresent()) {
+            throw new EntityAlreadyExistsException("Rule for field path '" + fieldPath + "' already exists for this vendor");
+        }
+    }
+
+    private void checkFieldPathSupportedOrThrow(String fieldPath) {
+        if (!CanonicalFieldRegistry.isSupported(fieldPath)) {
+            throw new UnsupportedFieldPathException(fieldPath);
         }
     }
 }
