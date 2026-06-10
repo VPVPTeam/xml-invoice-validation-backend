@@ -1,6 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
@@ -33,7 +34,23 @@ public final class BusinessValidator {
         }
 
         for (BusinessRuleEntity rule : rules) {
-            String actualValue = fieldValueExtractor.extract(invoice, rule.getFieldPath());
+            String actualValue;
+
+            try {
+                actualValue = fieldValueExtractor.extract(invoice, rule.getFieldPath());
+            } catch (UnsupportedFieldPathException e) {
+                issues.add(new ValidationIssue(
+                        fileName,
+                        invoiceNumber,
+                        sellerTaxId,
+                        ValidationStage.BUSINESS,
+                        Severity.ERROR,
+                        rule.getRuleKey(),
+                        rule.getFieldPath(),
+                        BusinessIssueMessages.unsupportedFieldPath(rule.getRuleKey(), rule.getFieldPath())
+                ));
+                continue;
+            }
 
             boolean passed = operatorEvaluator.evaluate(
                     actualValue,
@@ -55,7 +72,7 @@ public final class BusinessValidator {
                         invoiceNumber,
                         sellerTaxId,
                         ValidationStage.BUSINESS,
-                        Severity.ERROR,
+                        Severity.WARNING,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
                         message

@@ -72,7 +72,7 @@ CREATE INDEX idx_batch_vendor_vendor_id   ON batch_vendor  (vendor_id);
 CREATE TABLE vendor (
                         id     BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                         tax_id VARCHAR(50) NOT NULL UNIQUE,
-                        name   VARCHAR(255)
+                        name   VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE business_rule (

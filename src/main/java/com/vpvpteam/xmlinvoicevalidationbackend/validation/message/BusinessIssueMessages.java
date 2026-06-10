@@ -15,4 +15,8 @@ public final class BusinessIssueMessages {
                 + " expected " + operator + " '" + expectedValue + "'"
                 + ", got '" + actualValue + "'";
     }
+
+    public static String unsupportedFieldPath(String ruleKey, String fieldPath) {
+        return "Business rule '" + ruleKey + "' references unsupported field path: '" + fieldPath + "'";
+    }
 }

@@ -9,8 +9,5 @@ import java.util.Optional;
 public interface BusinessRuleRepository extends JpaRepository<BusinessRuleEntity, Long> {
     List<BusinessRuleEntity> findByVendor_TaxId(String taxId);
     Optional<BusinessRuleEntity> findByVendor_IdAndRuleKey(Long vendorId, String ruleKey);
-
-    /* TODO: добивить функционал
     Optional<BusinessRuleEntity> findByVendor_IdAndFieldPath(Long vendorId, String fieldPath);
-     */
 }

@@ -3,6 +3,7 @@ package com.vpvpteam.xmlinvoicevalidationbackend.api;
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,6 +46,14 @@ public final class ApiExceptionHandler {
                 .body(new ErrorResponse(message));
     }
 
+    @ExceptionHandler(UnsupportedFieldPathException.class)
+    public ResponseEntity<String> handleUnsupportedFieldPath(UnsupportedFieldPathException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ex.getMessage());
+    }
+
+    // handleUnexpected всегда должен быть в конце
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         return ResponseEntity
