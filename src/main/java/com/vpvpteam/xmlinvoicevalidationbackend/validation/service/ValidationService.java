@@ -1,6 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
@@ -14,6 +15,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.Bu
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -27,13 +29,17 @@ public final class ValidationService {
     private final Map<String, FormatProcessor> processors;
     private final BusinessValidator businessValidator;
     private final ValidationPersistenceService persistenceService;
+    private final ValidationBatchDao validationBatchDao;
 
-    public ValidationService(List<FormatProcessor> processorList, BusinessValidator businessValidator, ValidationPersistenceService persistenceService) {
-        this.processors = processorList.stream().collect(Collectors.toMap(FormatProcessor::getFormatName,
-                                                                          Function.identity()));
-
+    public ValidationService(List<FormatProcessor> processorList,
+                             BusinessValidator businessValidator,
+                             ValidationPersistenceService persistenceService,
+                             ValidationBatchDao validationBatchDao) {
+        this.processors = processorList.stream()
+                .collect(Collectors.toMap(FormatProcessor::getFormatName, Function.identity()));
         this.businessValidator = businessValidator;
         this.persistenceService = persistenceService;
+        this.validationBatchDao = validationBatchDao;
     }
 
     public Set<String> getSupportedFormats() {
@@ -106,6 +112,21 @@ public final class ValidationService {
                 ));
                 output.increaseDuplicateInvoicesCount();
                 continue;
+            }
+
+            Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId);
+            if (!previousBatches.isEmpty()) {
+                allIssues.add(new ValidationIssue(
+                        xmlFileData.fileName(),
+                        invoiceNumber,
+                        sellerTaxId,
+                        ValidationStage.BUSINESS,
+                        Severity.WARNING,
+                        "DUPLICATE_CROSS_BATCH",
+                        "invoiceId",
+                        DuplicateIssueMessages.duplicateCrossBatch(sellerTaxId, invoiceNumber, previousBatches)
+                ));
+                output.increaseDuplicateInvoicesCount();
             }
 
             if (technicalOutput.hasErrors()) {
