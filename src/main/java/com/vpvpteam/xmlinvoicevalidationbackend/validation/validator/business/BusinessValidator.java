@@ -44,7 +44,7 @@ public final class BusinessValidator {
                         invoiceNumber,
                         sellerTaxId,
                         ValidationStage.BUSINESS,
-                        Severity.ERROR,
+                        Severity.WARNING,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
                         BusinessIssueMessages.unsupportedFieldPath(rule.getRuleKey(), rule.getFieldPath())
