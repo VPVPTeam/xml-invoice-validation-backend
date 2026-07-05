@@ -8,6 +8,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -38,6 +39,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
         // 2) Validate DTO presence.
         //    If DTO is null, we create a technical issue.
         checkRequired(dto != null, xmlFileName, "Faktura", "", "", issues);
+        if (dto == null) {
+            return TechnicalValidationOutput.failure(issues);
+        }
 
         // 3) Extract safe identifiers.
         //    If DTO is invalid/null, helper methods return "UNKNOWN" instead of throwing.
@@ -45,11 +49,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
         String invoiceNumber = dto.safeInvoiceNumber();
 
         // 4) Validate nested sections only when DTO exists.
-        if (dto != null) {
-            validateParty(dto.getSeller(), xmlFileName, "Podmiot1", sellerTaxId, invoiceNumber, issues);
-            validateParty(dto.getBuyer(), xmlFileName, "Podmiot2", sellerTaxId, invoiceNumber, issues);
-            validateBody(dto.getInvoiceBody(), xmlFileName, sellerTaxId, invoiceNumber, issues);
-        }
+        validateParty(dto.getSeller(), xmlFileName, "Podmiot1", sellerTaxId, invoiceNumber, issues);
+        validateParty(dto.getBuyer(), xmlFileName, "Podmiot2", sellerTaxId, invoiceNumber, issues);
+        validateBody(dto.getInvoiceBody(), xmlFileName, sellerTaxId, invoiceNumber, issues);
 
         // 5) Fail before mapping:
         //    if at least one technical ERROR exists, do not run mapper.

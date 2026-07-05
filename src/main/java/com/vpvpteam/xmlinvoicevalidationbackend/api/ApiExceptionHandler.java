@@ -3,6 +3,7 @@ package com.vpvpteam.xmlinvoicevalidationbackend.api;
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.InvalidRuleExpectedValueException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +52,13 @@ public final class ApiExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRuleExpectedValueException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRuleExpectedValue(InvalidRuleExpectedValueException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
     }
 
     // handleUnexpected всегда должен быть в конце

@@ -3,17 +3,20 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalFieldRegistry;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.InvalidRuleExpectedValueException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.VendorEntity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.RuleOperator;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.BusinessRule;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.Vendor;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRuleRepository;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.VendorRepository;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.OperatorEvaluator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
@@ -27,11 +30,16 @@ public class ValidationPersistenceService {
     private final ValidationPersistenceMapper mapper;
     private final VendorRepository vendorRepository;
     private final BusinessRuleRepository businessRuleRepository;
+    private final OperatorEvaluator operatorEvaluator;
 
-    public ValidationPersistenceService(ValidationPersistenceMapper mapper, VendorRepository vendorRepository, BusinessRuleRepository businessRuleRepository) {
+    public ValidationPersistenceService(ValidationPersistenceMapper mapper,
+                                        VendorRepository vendorRepository,
+                                        BusinessRuleRepository businessRuleRepository,
+                                        OperatorEvaluator operatorEvaluator) {
         this.mapper = mapper;
         this.vendorRepository = vendorRepository;
         this.businessRuleRepository = businessRuleRepository;
+        this.operatorEvaluator = operatorEvaluator;
     }
 
     // ValidationOutput
@@ -69,6 +77,7 @@ public class ValidationPersistenceService {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
 
         checkFieldPathSupportedOrThrow(rule.getFieldPath());
+        checkExpectedValueValidOrThrow(rule.getOperator(), rule.getExpectedValue());
         checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
 
         BusinessRuleEntity ruleEntity = mapper.toEntity(rule, vendorEntity);
@@ -85,6 +94,8 @@ public class ValidationPersistenceService {
             checkFieldPathSupportedOrThrow(rule.getFieldPath());
             checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
         }
+
+        checkExpectedValueValidOrThrow(rule.getOperator(), rule.getExpectedValue());
 
         ruleEntity.setFieldPath(rule.getFieldPath());
         ruleEntity.setOperator(rule.getOperator());
@@ -127,6 +138,12 @@ public class ValidationPersistenceService {
     private void checkFieldPathSupportedOrThrow(String fieldPath) {
         if (!CanonicalFieldRegistry.isSupported(fieldPath)) {
             throw new UnsupportedFieldPathException(fieldPath);
+        }
+    }
+
+    private void checkExpectedValueValidOrThrow(RuleOperator operator, String expectedValue) {
+        if (!operatorEvaluator.isExpectedValueValid(operator, expectedValue)) {
+            throw new InvalidRuleExpectedValueException("Invalid expected value '" + expectedValue + "' for operator " + operator);
         }
     }
 }

@@ -106,7 +106,7 @@ public final class ValidationService {
                         sellerTaxId,
                         ValidationStage.BUSINESS,
                         Severity.WARNING,
-                        "DUPLICATE_IN_BATCH",
+                        DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH,
                         "invoiceId",
                         DuplicateIssueMessages.duplicateInBatch(sellerTaxId, invoiceNumber)
                 ));
@@ -122,7 +122,7 @@ public final class ValidationService {
                         sellerTaxId,
                         ValidationStage.BUSINESS,
                         Severity.WARNING,
-                        "DUPLICATE_CROSS_BATCH",
+                        DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH,
                         "invoiceId",
                         DuplicateIssueMessages.duplicateCrossBatch(sellerTaxId, invoiceNumber, previousBatches)
                 ));

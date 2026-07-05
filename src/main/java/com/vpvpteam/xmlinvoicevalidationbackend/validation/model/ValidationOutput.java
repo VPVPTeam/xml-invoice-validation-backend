@@ -1,12 +1,14 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -50,14 +52,26 @@ public final class ValidationOutput {
         }
     }
 
-    // TODO: НЕ УЧЛИ МИНУС (потенциально некорректная арифметика с дупликатами)
     private void calculateBatchTotals() {
-        HashSet<String> invoiceIdsWithIssues = issues.stream()
-                .map(issue -> issue.getSellerTaxId() + "|" + issue.getInvoiceNumber())
-                .collect(Collectors.toCollection(HashSet::new));
+        Set<String> distinctInvoiceIds = new HashSet<>(validationBatch.getListOfInvoiceIds());
 
-        invoicesWithIssues = invoiceIdsWithIssues.size() - duplicateInvoices;
-        totalInvoices = validationBatch.getListOfInvoiceIds().size() + duplicateInvoices;
-        validInvoices = validationBatch.getListOfInvoiceIds().size() - invoicesWithIssues;
+        Set<String> invoiceIdsWithRealIssues = issues.stream()
+                .filter(issue -> !isDuplicateIssue(issue))
+                .map(this::invoiceId)
+                .filter(distinctInvoiceIds::contains)
+                .collect(Collectors.toSet());
+
+        totalInvoices = distinctInvoiceIds.size();
+        invoicesWithIssues = invoiceIdsWithRealIssues.size();
+        validInvoices = totalInvoices - invoicesWithIssues;
+    }
+
+    private boolean isDuplicateIssue(ValidationIssue issue) {
+        return DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH.equals(issue.getRuleKey())
+                || DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH.equals(issue.getRuleKey());
+    }
+
+    private String invoiceId(ValidationIssue issue) {
+        return issue.getSellerTaxId() + "|" + issue.getInvoiceNumber();
     }
 }

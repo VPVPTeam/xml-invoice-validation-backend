@@ -5,6 +5,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public final class DuplicateIssueMessages {
+    public static final String RULE_DUPLICATE_IN_BATCH = "DUPLICATE_IN_BATCH";
+    public static final String RULE_DUPLICATE_CROSS_BATCH = "DUPLICATE_CROSS_BATCH";
+
     private DuplicateIssueMessages() {}
 
     public static String duplicateInBatch(String sellerTaxId, String invoiceNumber) {
@@ -13,7 +16,6 @@ public final class DuplicateIssueMessages {
                 "\nDuplicate invoice in the same batch (rule: DUPLICATE_IN_BATCH)";
     }
 
-    // TODO: Добавить проверку кросс-батч
     public static String duplicateCrossBatch(String sellerTaxId,
                                              String invoiceNumber,
                                              Map<String, OffsetDateTime> batchesByInvoiceId) {
