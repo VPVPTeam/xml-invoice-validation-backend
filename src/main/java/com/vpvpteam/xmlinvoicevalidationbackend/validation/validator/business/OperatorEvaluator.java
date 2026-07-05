@@ -6,9 +6,13 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Component
 public final class OperatorEvaluator {
+    private static final String BETWEEN_DELIMITER = ";";
+
     public boolean evaluate(String actualValue, String expectedValue, RuleOperator operator) {
         if (actualValue == null) {
             return false;
@@ -17,8 +21,8 @@ public final class OperatorEvaluator {
         return switch (operator) {
             case EQUALS       -> actualValue.equals(expectedValue);
             case NOT_EQUALS   -> !actualValue.equals(expectedValue);
-            case GREATER_THAN -> compareNumbers(actualValue, expectedValue) > 0;
-            case LESS_THAN    -> compareNumbers(actualValue, expectedValue) < 0;
+            case GREATER_THAN -> compareNumbers(actualValue, expectedValue).map(cmp -> cmp > 0).orElse(false);
+            case LESS_THAN    -> compareNumbers(actualValue, expectedValue).map(cmp -> cmp < 0).orElse(false);
             case BETWEEN      -> evaluateBetween(actualValue, expectedValue);
             case IN           -> parseList(expectedValue).contains(actualValue);
             case NOT_IN       -> !parseList(expectedValue).contains(actualValue);
@@ -26,25 +30,60 @@ public final class OperatorEvaluator {
         };
     }
 
-    private int compareNumbers(String actual, String expected) {
-        BigDecimal actualNum = new BigDecimal(actual);
-        BigDecimal expectedNum = new BigDecimal(expected);
-        return actualNum.compareTo(expectedNum);
+    public boolean isExpectedValueValid(RuleOperator operator, String expectedValue) {
+        return switch (operator) {
+            case GREATER_THAN, LESS_THAN -> tryParseBigDecimal(expectedValue).isPresent();
+            case BETWEEN -> isValidBetweenRange(expectedValue);
+            case EQUALS, NOT_EQUALS, IN, NOT_IN, CONTAINS -> true;
+        };
     }
 
-    // TODO: Подумать можно ли заменить делимитер
-    private boolean evaluateBetween(String actualValue, String expectedValue) {
-        String[] parts = expectedValue.split("\\|");
+    private Optional<Integer> compareNumbers(String actual, String expected) {
+        Optional<BigDecimal> actualNum = tryParseBigDecimal(actual);
+        Optional<BigDecimal> expectedNum = tryParseBigDecimal(expected);
 
-        if (parts.length != 2) {
+        if (actualNum.isEmpty() || expectedNum.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(actualNum.get().compareTo(expectedNum.get()));
+    }
+
+    private boolean evaluateBetween(String actualValue, String expectedValue) {
+        Optional<NumericRange> range = parseBetweenRange(expectedValue);
+        Optional<BigDecimal> actual = tryParseBigDecimal(actualValue);
+
+        if (range.isEmpty() || actual.isEmpty()) {
             return false;
         }
 
-        BigDecimal actual = new BigDecimal(actualValue);
-        BigDecimal min = new BigDecimal(parts[0].strip());
-        BigDecimal max = new BigDecimal(parts[1].strip());
+        return actual.get().compareTo(range.get().min()) >= 0
+                && actual.get().compareTo(range.get().max()) <= 0;
+    }
 
-        return actual.compareTo(min) >= 0 && actual.compareTo(max) <= 0;
+    private Optional<NumericRange> parseBetweenRange(String expectedValue) {
+        String[] parts = expectedValue.split(Pattern.quote(BETWEEN_DELIMITER), -1);
+
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+
+        Optional<BigDecimal> min = tryParseBigDecimal(parts[0].strip());
+        Optional<BigDecimal> max = tryParseBigDecimal(parts[1].strip());
+
+        if (min.isEmpty() || max.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new NumericRange(min.get(), max.get()));
+    }
+
+    private Optional<BigDecimal> tryParseBigDecimal(String value) {
+        try {
+            return Optional.of(new BigDecimal(value));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     private List<String> parseList(String expectedValue) {
@@ -52,4 +91,12 @@ public final class OperatorEvaluator {
                 .map(String::strip)
                 .toList();
     }
+
+    private boolean isValidBetweenRange(String expectedValue) {
+        return parseBetweenRange(expectedValue)
+                .map(range -> range.min().compareTo(range.max()) <= 0)
+                .orElse(false);
+    }
+
+    private record NumericRange(BigDecimal min, BigDecimal max) {}
 }
