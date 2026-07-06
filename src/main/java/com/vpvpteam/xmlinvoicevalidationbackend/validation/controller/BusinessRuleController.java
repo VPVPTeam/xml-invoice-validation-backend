@@ -32,18 +32,19 @@ public final class BusinessRuleController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createRule(@Valid @RequestBody BusinessRule rule) {
-        persistenceService.save(rule);
+    public BusinessRule createRule(@Valid @RequestBody BusinessRule rule) {
+        return persistenceService.save(rule);
     }
 
     @PutMapping("/{ruleKey}")
-    public void updateRule(@PathVariable String ruleKey,
-                           @Valid @RequestBody BusinessRule rule) {
+    public BusinessRule updateRule(@PathVariable String ruleKey,
+                                   @Valid @RequestBody BusinessRule rule) {
         rule.setRuleKey(ruleKey);
-        persistenceService.update(rule);
+        return persistenceService.update(rule);
     }
 
     @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRule(@RequestParam String vendorTaxId,
                            @RequestParam String ruleKey) {
         persistenceService.delete(vendorTaxId, ruleKey);

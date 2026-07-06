@@ -10,6 +10,8 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Repository
 public class ValidationBatchDao {
@@ -37,9 +39,7 @@ public class ValidationBatchDao {
 
         for (Object[] row : rows) {
             String batchId = (String) row[0];
-
-            // Для PostgreSQL timestamptz обычно приходит как OffsetDateTime
-            OffsetDateTime createdAt = (OffsetDateTime) row[1];
+            OffsetDateTime createdAt = ((Instant) row[1]).atOffset(ZoneOffset.UTC);
 
             result.put(batchId, createdAt);
         }
@@ -47,39 +47,3 @@ public class ValidationBatchDao {
         return result;
     }
 }
-
-// TODO: ПОСЛЕ ЗАПУСКА ПРИЛОЖЕНИЯ ПРОВЕРИТЬ РАБОТАЕТ ЛИ ТАК ЖЕ С TUPLE
-//@Repository
-//public class ValidationBatchDao {
-//
-//    @PersistenceContext
-//    private EntityManager entityManager;
-//
-//    @Transactional(readOnly = true)
-//    public Map<String, OffsetDateTime> findBatchesByInvoiceId(String invoiceId) {
-//        Session session = entityManager.unwrap(Session.class);
-//
-//        List<Tuple> rows = session.createNativeQuery("""
-//                SELECT
-//                    validation_batch.batch_id   AS batchId,
-//                    validation_batch.created_at AS createdAt
-//                FROM batch_invoice
-//                JOIN validation_batch
-//                  ON validation_batch.id = batch_invoice.validation_batch_id
-//                WHERE batch_invoice.invoice_id = :invoiceId
-//                ORDER BY validation_batch.created_at DESC, validation_batch.id DESC
-//                """, Tuple.class)
-//                .setParameter("invoiceId", invoiceId)
-//                .getResultList();
-//
-//        Map<String, OffsetDateTime> result = new LinkedHashMap<>();
-//
-//        for (Tuple row : rows) {
-//            String batchId = row.get("batchId", String.class);
-//            OffsetDateTime createdAt = row.get("createdAt", OffsetDateTime.class);
-//            result.put(batchId, createdAt);
-//        }
-//
-//        return result;
-//    }
-//}

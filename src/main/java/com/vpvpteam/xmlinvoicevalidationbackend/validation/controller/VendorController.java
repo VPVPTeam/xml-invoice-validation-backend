@@ -28,18 +28,19 @@ public final class VendorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createVendor(@Valid @RequestBody Vendor vendor) {
-        persistenceService.save(vendor);
+    public Vendor createVendor(@Valid @RequestBody Vendor vendor) {
+        return persistenceService.save(vendor);
     }
 
     @PutMapping("/{taxId}")
-    public void updateVendor(@PathVariable String taxId,
-                             @Valid @RequestBody Vendor vendor) {
+    public Vendor updateVendor(@PathVariable String taxId,
+                               @Valid @RequestBody Vendor vendor) {
         vendor.setTaxId(taxId);
-        persistenceService.update(vendor);
+        return persistenceService.update(vendor);
     }
 
     @DeleteMapping("/{taxId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteVendor(@PathVariable String taxId) {
         persistenceService.deleteVendor(taxId);
     }

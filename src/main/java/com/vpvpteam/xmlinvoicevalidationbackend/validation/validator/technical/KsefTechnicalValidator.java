@@ -8,7 +8,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
