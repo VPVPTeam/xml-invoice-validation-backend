@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.Set;
 
 public final class CanonicalFieldRegistry {
 
@@ -35,6 +36,10 @@ public final class CanonicalFieldRegistry {
 
     public static boolean isSupported(String fieldPath) {
         return EXTRACTORS.containsKey(fieldPath);
+    }
+
+    public static Set<String> getSupportedFieldPaths() {
+        return EXTRACTORS.keySet();
     }
 
     private static Map<String, Function<CanonicalInvoice, String>> buildExtractors() {
