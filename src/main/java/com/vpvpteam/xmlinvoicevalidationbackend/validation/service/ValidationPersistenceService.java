@@ -80,6 +80,7 @@ public class ValidationPersistenceService {
 
         checkFieldPathSupportedOrThrow(rule.getFieldPath());
         checkExpectedValueValidOrThrow(rule.getOperator(), rule.getExpectedValue());
+        checkRuleKeyUniqueForVendorOrThrow(vendorEntity.getId(), rule.getRuleKey());
         checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
 
         BusinessRuleEntity saved = businessRuleRepository.save(mapper.toEntity(rule, vendorEntity));
@@ -129,6 +130,12 @@ public class ValidationPersistenceService {
     private void checkVendorNotExistsOrThrow(String vendorTaxId) {
         if (vendorRepository.findByTaxId(vendorTaxId).isPresent()) {
             throw new EntityAlreadyExistsException("Vendor already exists:  " + vendorTaxId);
+        }
+    }
+
+    private void checkRuleKeyUniqueForVendorOrThrow(Long vendorId, String ruleKey) {
+        if (businessRuleRepository.findByVendor_IdAndRuleKey(vendorId, ruleKey).isPresent()) {
+            throw new EntityAlreadyExistsException("Rule with key '" + ruleKey + "' already exists for this vendor");
         }
     }
 
