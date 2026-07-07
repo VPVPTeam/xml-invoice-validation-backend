@@ -54,15 +54,17 @@ public class ValidationPersistenceService {
 
     // Vendor
     @Transactional
-    public void save(Vendor vendor) {
+    public Vendor save(Vendor vendor) {
         checkVendorNotExistsOrThrow(vendor.getTaxId());
-        vendorRepository.save(mapper.toEntity(vendor));
+        VendorEntity saved = vendorRepository.save(mapper.toEntity(vendor));
+        return mapper.toModel(saved);
     }
 
     @Transactional
-    public void update(Vendor vendor) {
+    public Vendor update(Vendor vendor) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(vendor.getTaxId());
         vendorEntity.setName(vendor.getName());
+        return mapper.toModel(vendorEntity);
     }
 
     @Transactional
@@ -73,20 +75,19 @@ public class ValidationPersistenceService {
 
     // BusinessRule
     @Transactional
-    public void save(BusinessRule rule) {
+    public BusinessRule save(BusinessRule rule) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
 
         checkFieldPathSupportedOrThrow(rule.getFieldPath());
         checkExpectedValueValidOrThrow(rule.getOperator(), rule.getExpectedValue());
         checkRuleFieldPathUniqueForVendorOrThrow(vendorEntity.getId(), rule.getFieldPath());
 
-        BusinessRuleEntity ruleEntity = mapper.toEntity(rule, vendorEntity);
-
-        businessRuleRepository.save(ruleEntity);
+        BusinessRuleEntity saved = businessRuleRepository.save(mapper.toEntity(rule, vendorEntity));
+        return mapper.toModel(saved);
     }
 
     @Transactional
-    public void update(BusinessRule rule) {
+    public BusinessRule update(BusinessRule rule) {
         VendorEntity vendorEntity = getVendorEntityOrThrow(rule.getVendorTaxId());
         BusinessRuleEntity ruleEntity = getRuleEntityOrThrow(vendorEntity.getId(), rule.getRuleKey());
 
@@ -101,6 +102,8 @@ public class ValidationPersistenceService {
         ruleEntity.setOperator(rule.getOperator());
         ruleEntity.setExpectedValue(rule.getExpectedValue());
         ruleEntity.setCreatedBy(rule.getCreatedBy());
+
+        return mapper.toModel(ruleEntity);
     }
 
     @Transactional
