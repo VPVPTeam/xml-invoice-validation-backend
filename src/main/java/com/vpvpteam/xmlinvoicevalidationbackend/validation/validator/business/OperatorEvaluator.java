@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.Locale;
 
 @Component
 public final class OperatorEvaluator {
@@ -19,14 +20,14 @@ public final class OperatorEvaluator {
         }
 
         return switch (operator) {
-            case EQUALS       -> actualValue.equals(expectedValue);
-            case NOT_EQUALS   -> !actualValue.equals(expectedValue);
+            case EQUALS       -> actualValue.equalsIgnoreCase(expectedValue);
+            case NOT_EQUALS   -> !actualValue.equalsIgnoreCase(expectedValue);
             case GREATER_THAN -> compareNumbers(actualValue, expectedValue).map(cmp -> cmp > 0).orElse(false);
             case LESS_THAN    -> compareNumbers(actualValue, expectedValue).map(cmp -> cmp < 0).orElse(false);
             case BETWEEN      -> evaluateBetween(actualValue, expectedValue);
-            case IN           -> parseList(expectedValue).contains(actualValue);
-            case NOT_IN       -> !parseList(expectedValue).contains(actualValue);
-            case CONTAINS     -> actualValue.contains(expectedValue);
+            case IN           -> parseList(expectedValue).stream().anyMatch(actualValue::equalsIgnoreCase);
+            case NOT_IN       -> parseList(expectedValue).stream().noneMatch(actualValue::equalsIgnoreCase);
+            case CONTAINS     -> containsIgnoreCase(actualValue, expectedValue);
         };
     }
 
@@ -99,4 +100,8 @@ public final class OperatorEvaluator {
     }
 
     private record NumericRange(BigDecimal min, BigDecimal max) {}
+
+    private boolean containsIgnoreCase(String actual, String expected) {
+        return actual.toLowerCase(Locale.ROOT).contains(expected.toLowerCase(Locale.ROOT));
+    }
 }

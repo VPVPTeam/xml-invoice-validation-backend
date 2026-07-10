@@ -73,7 +73,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
                     Severity.ERROR,
                     "TECH_CANONICAL_MAPPING_FAILED",
                     "canonicalInvoice",
-                    TechnicalIssueMessages.canonicalMappingFailed(sellerTaxId, invoiceNumber, xmlFileName, ex)
+                    TechnicalIssueMessages.canonicalMappingFailed(xmlFileName, ex)
             ));
             return TechnicalValidationOutput.failure(issues);
         }
@@ -178,7 +178,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
                     Severity.ERROR,
                     "TECH_MISSING_REQUIRED_FIELD",
                     fieldPath,
-                    TechnicalIssueMessages.missingRequiredField(sellerTaxId, invoiceNumber, fieldPath)
+                    TechnicalIssueMessages.missingRequiredField(fieldPath)
             ));
         }
     }

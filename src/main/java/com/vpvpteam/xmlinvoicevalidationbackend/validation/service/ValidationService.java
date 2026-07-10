@@ -108,7 +108,7 @@ public final class ValidationService {
                         Severity.WARNING,
                         DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH,
                         "invoiceId",
-                        DuplicateIssueMessages.duplicateInBatch(sellerTaxId, invoiceNumber)
+                        DuplicateIssueMessages.duplicateInBatch()
                 ));
                 output.increaseDuplicateInvoicesCount();
                 continue;
@@ -124,7 +124,7 @@ public final class ValidationService {
                         Severity.WARNING,
                         DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH,
                         "invoiceId",
-                        DuplicateIssueMessages.duplicateCrossBatch(sellerTaxId, invoiceNumber, previousBatches)
+                        DuplicateIssueMessages.duplicateCrossBatch(previousBatches)
                 ));
                 output.increaseDuplicateInvoicesCount();
             }
