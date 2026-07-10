@@ -7,10 +7,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.*;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
 import lombok.AllArgsConstructor;
@@ -84,10 +81,10 @@ public final class InvoiceValidationController {
     }
 
     @GetMapping("/batches/by-vendor")
-    public ListResponse<ValidationBatch> getBatchesByVendor(@RequestParam String vendorId) {
-        List<ValidationBatch> batches = queryService.getBatchesByVendor(vendorId)
+    public ListResponse<BatchSummary> getBatchesByVendor(@RequestParam String vendorId) {
+        List<BatchSummary> batches = queryService.getBatchesByVendor(vendorId)
                 .stream()
-                .map(persistenceMapper::toModel)
+                .map(entity -> new BatchSummary(entity.getBatchId(), entity.getCreatedAt()))
                 .toList();
 
         return ListResponse.of(batches);
@@ -105,9 +102,15 @@ public final class InvoiceValidationController {
     }
 
     @GetMapping("/batches/by-invoice")
-    public Map<String, OffsetDateTime> getBatchesByInvoice(@RequestParam String sellerTaxId,
-                                                           @RequestParam String invoiceNumber) {
+    public ListResponse<BatchSummary> getBatchesByInvoice(@RequestParam String sellerTaxId,
+                                                          @RequestParam String invoiceNumber) {
         String invoiceId = sellerTaxId + "|" + invoiceNumber;
-        return queryService.getBatchesByInvoiceId(invoiceId);
+
+        List<BatchSummary> batches = queryService.getBatchesByInvoiceId(invoiceId)
+                .entrySet().stream()
+                .map(entry -> new BatchSummary(entry.getKey(), entry.getValue()))
+                .toList();
+
+        return ListResponse.of(batches);
     }
 }
