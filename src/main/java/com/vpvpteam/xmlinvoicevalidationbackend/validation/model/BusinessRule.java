@@ -16,22 +16,22 @@ import lombok.Setter;
 public final class BusinessRule {
     private Long id;
 
-    @NotBlank
+    @NotBlank(message = "Vendor tax ID must not be blank")
     @Size(max = 50)
     private String vendorTaxId;
 
-    @NotBlank
+    @NotBlank(message = "Rule key must not be blank")
     @Size(max = 100)
     private String ruleKey;
 
-    @NotBlank
+    @NotBlank(message = "Field path must not be blank")
     @Size(max = 100)
     private String fieldPath;
 
-    @NotNull
+    @NotNull(message = "Operator must not be blank")
     private RuleOperator operator;
 
-    @NotBlank
+    @NotBlank(message = "Expected value must not be blank")
     @Size(max = 255)
     private String expectedValue;
 

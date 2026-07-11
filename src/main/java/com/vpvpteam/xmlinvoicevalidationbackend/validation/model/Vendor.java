@@ -14,11 +14,11 @@ import lombok.Setter;
 public final class Vendor {
     private Long id;
 
-    @NotBlank
+    @NotBlank(message = "Vendor tax ID must not be blank")
     @Size(max = 50)
     private String taxId;
 
-    @NotBlank
+    @NotBlank(message = "Vendor name must not be blank")
     @Size(max = 255)
     private String name;
 }
