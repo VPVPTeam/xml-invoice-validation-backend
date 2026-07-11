@@ -18,6 +18,6 @@ public class VendorEntity {
     @Column(name = "tax_id", nullable = false, unique = true, length = 50)
     private String taxId;
 
-    @Column(name = "name", length = 255)
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
 }
