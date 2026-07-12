@@ -1,4 +1,4 @@
-package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator;
+package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceMapper;
@@ -6,6 +6,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlD
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +18,7 @@ import java.util.List;
  * Checks required XML fields and then tries canonical mapping.
  */
 @Component
-public final class KsefTechnicalValidator implements TechnicalValidator {
-
+public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvoiceXmlDto> {
     private final KsefInvoiceMapper mapper;
 
     public KsefTechnicalValidator(KsefInvoiceMapper mapper) {
@@ -38,6 +38,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
         // 2) Validate DTO presence.
         //    If DTO is null, we create a technical issue.
         checkRequired(dto != null, xmlFileName, "Faktura", "", "", issues);
+        if (dto == null) {
+            return TechnicalValidationOutput.failure(issues);
+        }
 
         // 3) Extract safe identifiers.
         //    If DTO is invalid/null, helper methods return "UNKNOWN" instead of throwing.
@@ -45,11 +48,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
         String invoiceNumber = dto.safeInvoiceNumber();
 
         // 4) Validate nested sections only when DTO exists.
-        if (dto != null) {
-            validateParty(dto.getSeller(), xmlFileName, "Podmiot1", sellerTaxId, invoiceNumber, issues);
-            validateParty(dto.getBuyer(), xmlFileName, "Podmiot2", sellerTaxId, invoiceNumber, issues);
-            validateBody(dto.getInvoiceBody(), xmlFileName, sellerTaxId, invoiceNumber, issues);
-        }
+        validateParty(dto.getSeller(), xmlFileName, "Podmiot1", sellerTaxId, invoiceNumber, issues);
+        validateParty(dto.getBuyer(), xmlFileName, "Podmiot2", sellerTaxId, invoiceNumber, issues);
+        validateBody(dto.getInvoiceBody(), xmlFileName, sellerTaxId, invoiceNumber, issues);
 
         // 5) Fail before mapping:
         //    if at least one technical ERROR exists, do not run mapper.
@@ -62,9 +63,9 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
         //    On mapping exception, convert it into a technical issue.
         try {
             CanonicalInvoice canonicalInvoice = mapper.toCanonical(dto);
-            return new TechnicalValidationOutput(canonicalInvoice, issues);
+            return TechnicalValidationOutput.success(canonicalInvoice);
         } catch (Exception ex) {
-            issues.add(ValidationIssue.buildIssue(
+            issues.add(new ValidationIssue(
                     xmlFileName,
                     invoiceNumber,
                     sellerTaxId,
@@ -72,7 +73,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                     Severity.ERROR,
                     "TECH_CANONICAL_MAPPING_FAILED",
                     "canonicalInvoice",
-                    ValidationIssue.messageKsefCanonicalMappingFailed(sellerTaxId, invoiceNumber, xmlFileName, ex)
+                    TechnicalIssueMessages.canonicalMappingFailed(xmlFileName, ex)
             ));
             return TechnicalValidationOutput.failure(issues);
         }
@@ -169,7 +170,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                                List<ValidationIssue> issues) {
         // Converts any failed required-check into a technical issue object.
         if (!condition) {
-            issues.add(ValidationIssue.buildIssue(
+            issues.add(new ValidationIssue(
                     fileName,
                     invoiceNumber,
                     sellerTaxId,
@@ -177,7 +178,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator {
                     Severity.ERROR,
                     "TECH_MISSING_REQUIRED_FIELD",
                     fieldPath,
-                    ValidationIssue.messageKsefMissingRequiredField(sellerTaxId, invoiceNumber, fieldPath)
+                    TechnicalIssueMessages.missingRequiredField(fieldPath)
             ));
         }
     }

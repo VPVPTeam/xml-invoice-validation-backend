@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class InvoiceTotals {
+public final class InvoiceTotals {
     private String currencyCode; // Fa / KodWaluty
     private BigDecimal totalNet; // Fa / P_13_1
     private BigDecimal totalTax; // Fa / P_14_1

@@ -1,26 +1,27 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationIssueEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.ValidationBatchRepository;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.ValidationIssueRepository;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.ValidationOutputRepository;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.*;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.*;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 @AllArgsConstructor
 @Transactional(readOnly = true)
 public class ValidationQueryService {
-
     private final ValidationOutputRepository outputRepository;
     private final ValidationBatchRepository batchRepository;
     private final ValidationIssueRepository issueRepository;
+    private final VendorRepository vendorRepository;
+    private final BusinessRuleRepository businessRuleRepository;
+    private final ValidationBatchDao batchDao;
 
     public Optional<ValidationOutputEntity> getFullReport(String batchId) {
         return outputRepository.findByValidationBatch_BatchId(batchId);
@@ -32,5 +33,17 @@ public class ValidationQueryService {
 
     public List<ValidationIssueEntity> getIssuesByInvoice(String sellerTaxId, String invoiceNumber) {
         return issueRepository.findBySellerTaxIdAndInvoiceNumber(sellerTaxId, invoiceNumber);
+    }
+
+    public Optional<VendorEntity> getVendorByTaxId(String taxId) {
+        return vendorRepository.findByTaxId(taxId);
+    }
+
+    public List<BusinessRuleEntity> getRulesByVendorTaxId(String vendorTaxId) {
+        return businessRuleRepository.findByVendor_TaxId(vendorTaxId);
+    }
+
+    public Map<String, OffsetDateTime> getBatchesByInvoiceId(String invoiceId) {
+        return batchDao.findBatchesByInvoiceId(invoiceId);
     }
 }

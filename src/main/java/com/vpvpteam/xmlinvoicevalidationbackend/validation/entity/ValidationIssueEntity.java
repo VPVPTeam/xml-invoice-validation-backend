@@ -23,7 +23,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "validation_issue")
 public class ValidationIssueEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

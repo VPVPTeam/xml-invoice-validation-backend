@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class CanonicalInvoice {
+public final class CanonicalInvoice {
     // Mandatory fields
     private InvoiceHeader header;
     private List<InvoiceLine> lines;

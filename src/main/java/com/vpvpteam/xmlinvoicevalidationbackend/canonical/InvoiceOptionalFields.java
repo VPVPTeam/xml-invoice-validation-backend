@@ -1,5 +1,5 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.canonical;
 
-public class InvoiceOptionalFields {
+public final class InvoiceOptionalFields {
     // optional fields for business validation
 }

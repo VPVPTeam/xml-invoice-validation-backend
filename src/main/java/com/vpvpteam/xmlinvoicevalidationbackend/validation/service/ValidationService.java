@@ -1,60 +1,70 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceParser;
-import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
+import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidationOutput;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.TechnicalValidator;
-import lombok.AllArgsConstructor;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidationOutput;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidator;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Service that validates a batch of XML invoice/invoices.
  * Orchestrates parsing, duplicate checks, technical validation and business validation.
  */
 @Service
-@AllArgsConstructor
 public final class ValidationService {
+    private final Map<String, FormatProcessor> processors;
+    private final BusinessValidator businessValidator;
     private final ValidationPersistenceService persistenceService;
-    private final KsefInvoiceParser parser;
-    private final TechnicalValidator technicalValidator;
+    private final ValidationBatchDao validationBatchDao;
 
-    /**
-     * Runs validation for a batch of XML inputs and returns ValidationOutput.
-     */
-    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData) {
-        // 1a) Create ValidationBatch object.
+    public ValidationService(List<FormatProcessor> processorList,
+                             BusinessValidator businessValidator,
+                             ValidationPersistenceService persistenceService,
+                             ValidationBatchDao validationBatchDao) {
+        this.processors = processorList.stream()
+                .collect(Collectors.toMap(FormatProcessor::getFormatName, Function.identity()));
+        this.businessValidator = businessValidator;
+        this.persistenceService = persistenceService;
+        this.validationBatchDao = validationBatchDao;
+    }
+
+    public Set<String> getSupportedFormats() {
+        return Collections.unmodifiableSet(processors.keySet());
+    }
+
+    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String format) {
+        FormatProcessor processor = processors.get(format);
+
         ValidationBatch batch = new ValidationBatch();
-
-        // 1b) Create ValidationOutput object and attach batch.
         ValidationOutput output = new ValidationOutput(batch);
 
-        // 2) Prepare accumulators for issues and summary id lists.
         List<ValidationIssue> allIssues = new ArrayList<>();
         Set<String> vendorIds = new LinkedHashSet<>();
         Set<String> invoiceIds = new LinkedHashSet<>();
-
-        // 3) Keep a set of invoice ids seen in this batch for duplicate detection.
         Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
-        // 4) Handle empty batch as a technical error and return early.
         if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            allIssues.add(ValidationIssue.buildIssue(
-                    "",
-                    "",
-                    "",
+            allIssues.add(new ValidationIssue(
+                    "", "", "",
                     ValidationStage.TECHNICAL,
                     Severity.ERROR,
                     "TECH_EMPTY_BATCH",
                     "batch",
-                    ValidationIssue.messageTechEmptyBatch()
+                    TechnicalIssueMessages.emptyBatch()
             ));
 
             batch.setListOfVendorIds(List.of());
@@ -64,14 +74,12 @@ public final class ValidationService {
             return output;
         }
 
-        // 5) Validate each XML invoice independently and merge issues if present.
         for (XmlFileData xmlFileData : xmlFilesData) {
-            // 5.1) Parse XML into DTO. On parse failure, add issue and continue with next file.
-            KsefInvoiceXmlDto dto;
+            TechnicalValidationOutput technicalOutput;
             try {
-                dto = parser.parse(xmlFileData.xmlInputStream());
+                technicalOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
             } catch (Exception ex) {
-                allIssues.add(ValidationIssue.buildIssue(
+                allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
                         "",
                         "",
@@ -79,46 +87,60 @@ public final class ValidationService {
                         Severity.ERROR,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
-                        ValidationIssue.messageTechXmlParseError(xmlFileData.fileName(), ex)
+                        TechnicalIssueMessages.xmlParseError(xmlFileData.fileName(), ex)
                 ));
                 continue;
             }
 
-            // 5.2) Extract safe identifiers used for deduplication and reporting.
-            String sellerTaxId = dto.safeSellerTaxId();
-            String invoiceNumber = dto.safeInvoiceNumber();
+            String sellerTaxId = technicalOutput.getSellerTaxId();
+            String invoiceNumber = technicalOutput.getInvoiceNumber();
             String invoiceId = sellerTaxId + "|" + invoiceNumber;
 
-            // 5.3) Collect ids for batch-level summary.
             vendorIds.add(sellerTaxId);
             invoiceIds.add(invoiceId);
 
-            // 5.4) Detect duplicates inside the same batch.
-            //      Duplicate is a warning and does stop technical validation.
             if (!seenInvoiceIdsInBatch.add(invoiceId)) {
-                allIssues.add(ValidationIssue.buildIssue(
+                allIssues.add(new ValidationIssue(
                         xmlFileData.fileName(),
                         invoiceNumber,
                         sellerTaxId,
                         ValidationStage.BUSINESS,
                         Severity.WARNING,
-                        "DUPLICATE_IN_BATCH",
+                        DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH,
                         "invoiceId",
-                        ValidationIssue.messageDuplicateInBatch(sellerTaxId, invoiceNumber)
+                        DuplicateIssueMessages.duplicateInBatch()
                 ));
-
                 output.increaseDuplicateInvoicesCount();
                 continue;
             }
 
-            // 5.5) Run technical validator and merge all returned issues.
-            TechnicalValidationOutput techOutput = technicalValidator.validate(dto, xmlFileData.fileName());
-            if (techOutput.getIssues() != null && !techOutput.getIssues().isEmpty()) {
-                allIssues.addAll(techOutput.getIssues());
+            Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId);
+            if (!previousBatches.isEmpty()) {
+                allIssues.add(new ValidationIssue(
+                        xmlFileData.fileName(),
+                        invoiceNumber,
+                        sellerTaxId,
+                        ValidationStage.BUSINESS,
+                        Severity.WARNING,
+                        DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH,
+                        "invoiceId",
+                        DuplicateIssueMessages.duplicateCrossBatch(previousBatches)
+                ));
+                output.increaseDuplicateInvoicesCount();
             }
+
+            if (technicalOutput.hasErrors()) {
+                allIssues.addAll(technicalOutput.getIssues());
+                continue;
+            }
+
+            BusinessValidationOutput businessOutput = businessValidator.validate(
+                    technicalOutput.getCanonicalInvoice(),
+                    xmlFileData.fileName()
+            );
+            allIssues.addAll(businessOutput.getIssues());
         }
 
-        // 6) Build final batch ValidationOutput from accumulated data.
         batch.setListOfVendorIds(new ArrayList<>(vendorIds));
         batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
         output.setIssues(allIssues);

@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.formats.InvoiceXmlDto;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import jakarta.annotation.Nullable;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
@@ -18,7 +19,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JacksonXmlRootElement(localName = "Faktura")
-public class KsefInvoiceXmlDto {
+public class KsefInvoiceXmlDto implements InvoiceXmlDto {
     @JacksonXmlProperty(localName = "Podmiot1")
     private Party seller;
     @JacksonXmlProperty(localName = "Podmiot2")

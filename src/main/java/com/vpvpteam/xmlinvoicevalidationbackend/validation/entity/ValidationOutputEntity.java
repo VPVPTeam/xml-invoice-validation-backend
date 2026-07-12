@@ -27,7 +27,6 @@ import java.util.List;
 @Entity
 @Table(name = "validation_output")
 public class ValidationOutputEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
