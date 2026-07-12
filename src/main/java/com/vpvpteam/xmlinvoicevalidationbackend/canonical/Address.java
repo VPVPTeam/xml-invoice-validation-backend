@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Address {
+public final class Address {
     // Mandatory fields
     private String countryCode; // PodmiotX / Adres / KodKraju
     private String addressLine1; // PodmiotX / Adres / AdresL1

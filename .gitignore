@@ -39,7 +39,6 @@ application-local.yml
 
 # Database dumps
 db_dump/
-*.sql
 *.backup
 
 # IntelliJ IDEA

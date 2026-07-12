@@ -25,7 +25,6 @@ import java.util.List;
 @Entity
 @Table(name = "validation_batch")
 public class ValidationBatchEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

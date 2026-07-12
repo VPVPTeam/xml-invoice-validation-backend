@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class InvoiceLine {
+public final class InvoiceLine {
     private int lineNumber; // Fa / FaWiersz / NrWierszaFa
     private String productName; // Fa / FaWiersz / P_7
     private String unitOfMeasure; // Fa / FaWiersz / P_8A

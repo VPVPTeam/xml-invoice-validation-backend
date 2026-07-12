@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class InvoiceHeader {
+public final class InvoiceHeader {
     // Mandatory fields
     private String invoiceNumber; // Fa / P_2
     private String issueDate; // Fa / P_1
