@@ -106,3 +106,11 @@ CREATE TABLE business_rule (
                                                        'CONTAINS'
                                        ))
 );
+
+DROP TABLE IF EXISTS validation_issue;
+DROP TABLE IF EXISTS validation_output;
+DROP TABLE IF EXISTS batch_invoice;
+DROP TABLE IF EXISTS batch_vendor;
+DROP TABLE IF EXISTS validation_batch;
+DROP TABLE IF EXISTS business_rule;
+DROP TABLE IF EXISTS vendor;
