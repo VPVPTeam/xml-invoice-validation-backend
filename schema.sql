@@ -1,3 +1,12 @@
+DROP TABLE IF EXISTS validation_issue;
+DROP TABLE IF EXISTS validation_output;
+DROP TABLE IF EXISTS batch_invoice;
+DROP TABLE IF EXISTS batch_vendor;
+DROP TABLE IF EXISTS validation_batch;
+DROP TABLE IF EXISTS business_rule;
+DROP TABLE IF EXISTS vendor;
+DROP TABLE IF EXISTS app_user;
+
 CREATE TABLE validation_batch (
                                   id         BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                                   batch_id   VARCHAR(36) NOT NULL UNIQUE,
@@ -107,10 +116,13 @@ CREATE TABLE business_rule (
                                        ))
 );
 
-DROP TABLE IF EXISTS validation_issue;
-DROP TABLE IF EXISTS validation_output;
-DROP TABLE IF EXISTS batch_invoice;
-DROP TABLE IF EXISTS batch_vendor;
-DROP TABLE IF EXISTS validation_batch;
-DROP TABLE IF EXISTS business_rule;
-DROP TABLE IF EXISTS vendor;
+CREATE TABLE app_user (
+                          id            BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                          email         VARCHAR(255) NOT NULL UNIQUE,
+                          password_hash VARCHAR(255) NOT NULL,
+                          role          VARCHAR(20)  NOT NULL DEFAULT 'USER',
+                          is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+                          created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+
+                          CONSTRAINT chk_app_user_role CHECK (role IN ('USER', 'ADMIN'))
+);
