@@ -9,11 +9,12 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/vendors")
-public final class VendorController {
+public class VendorController {
     private final ValidationQueryService queryService;
     private final ValidationPersistenceService persistenceService;
     private final ValidationPersistenceMapper persistenceMapper;
@@ -28,11 +29,13 @@ public final class VendorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public Vendor createVendor(@Valid @RequestBody Vendor vendor) {
         return persistenceService.save(vendor);
     }
 
     @PutMapping("/{taxId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Vendor updateVendor(@PathVariable String taxId,
                                @Valid @RequestBody Vendor vendor) {
         vendor.setTaxId(taxId);
@@ -41,6 +44,7 @@ public final class VendorController {
 
     @DeleteMapping("/{taxId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteVendor(@PathVariable String taxId) {
         persistenceService.deleteVendor(taxId);
     }

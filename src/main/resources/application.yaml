@@ -15,3 +15,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-chars-long}
+    expiration-ms: 3600000
+
+  admin:
+    email: ${ADMIN_EMAIL:admin@example.com}
+    password: ${ADMIN_PASSWORD:admin12345}
