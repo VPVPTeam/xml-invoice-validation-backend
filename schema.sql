@@ -1,3 +1,13 @@
+TRUNCATE TABLE
+    validation_issue,
+    validation_output,
+    batch_invoice,
+    batch_vendor,
+    validation_batch,
+    business_rule,
+    vendor
+    RESTART IDENTITY CASCADE;
+
 DROP TABLE IF EXISTS validation_issue;
 DROP TABLE IF EXISTS validation_output;
 DROP TABLE IF EXISTS batch_invoice;
