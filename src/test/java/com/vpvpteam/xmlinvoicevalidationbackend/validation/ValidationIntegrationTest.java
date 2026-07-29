@@ -71,6 +71,66 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                         .value("UNKNOWN|38294723948"));
     }
 
+    @Test
+    void validate_withViolatedBusinessRule_reportsOnlyViolatedRule() throws Exception {
+        VendorEntity vendor = createVendor(GOODYEAR);
+        createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
+        createRule(vendor, "TOTALS_LESS_THAN", "totals.totalGross", RuleOperator.LESS_THAN, "1000");
+
+        validate(GOODYEAR.fileName())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WARNING"))
+                .andExpect(jsonPath("$.issues.length()").value(1))
+                .andExpect(jsonPath("$.issues[0].ruleKey").value("TOTALS_LESS_THAN"))
+                .andExpect(jsonPath("$.issues[0].fieldPath").value("totals.totalGross"))
+                .andExpect(jsonPath("$.issues[0].stage").value("BUSINESS"))
+                .andExpect(jsonPath("$.issues[0].severity").value("WARNING"))
+                .andExpect(jsonPath("$.issues[0].fileName").value(GOODYEAR.fileName()))
+                .andExpect(jsonPath("$.issues[0].sellerTaxId").value(GOODYEAR.sellerTaxId()))
+                .andExpect(jsonPath("$.issues[0].invoiceNumber").value(GOODYEAR.invoiceNumber()))
+                .andExpect(jsonPath("$.issues[0].message", containsString("3201.10")))
+                .andExpect(jsonPath("$.totalInvoices").value(1))
+                .andExpect(jsonPath("$.validInvoices").value(0))
+                .andExpect(jsonPath("$.invoicesWithIssues").value(1))
+                .andExpect(jsonPath("$.duplicateInvoices").value(0));
+    }
+
+    @Test
+    void validate_withMixedBatch_aggregatesResultsAcrossAllFiles() throws Exception {
+        VendorEntity vendor = createVendor(GOODYEAR);
+        createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
+
+        validate(GOODYEAR.fileName(), "Goodyear - Copy.xml", GOODYEAR_INVALID.fileName(),
+                "Michelin.xml", "Nokian.xml", "Shell.xml")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.totalInvoices").value(5))
+                .andExpect(jsonPath("$.validInvoices").value(4))
+                .andExpect(jsonPath("$.invoicesWithIssues").value(1))
+                .andExpect(jsonPath("$.duplicateInvoices").value(1))
+                .andExpect(jsonPath("$.issues.length()").value(3))
+                .andExpect(jsonPath("$.issues[*].ruleKey", containsInAnyOrder(
+                        "TECH_MISSING_REQUIRED_FIELD",
+                        "TECH_MISSING_REQUIRED_FIELD",
+                        "DUPLICATE_IN_BATCH")))
+                .andExpect(jsonPath("$.issues[*].stage", containsInAnyOrder(
+                        "TECHNICAL", "TECHNICAL", "BUSINESS")))
+                .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds.length()").value(5))
+                .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds", containsInAnyOrder(
+                        GOODYEAR_INVALID.invoiceId(),
+                        GOODYEAR.invoiceId(),
+                        "7390203825|VD16004393",
+                        "5213876026|960152352",
+                        "5261009190|9573462586")))
+                .andExpect(jsonPath("$.validationBatch.listOfVendorIds.length()").value(5))
+                .andExpect(jsonPath("$.validationBatch.listOfVendorIds", containsInAnyOrder(
+                        GOODYEAR_INVALID.sellerTaxId(),
+                        GOODYEAR.sellerTaxId(),
+                        "7390203825",
+                        "5213876026",
+                        "5261009190")));
+    }
+    
     private MockMultipartFile invoiceFile(String fileName) throws Exception {
         String path = "/invoices/" + fileName;
         byte[] content = Objects.requireNonNull(

@@ -1,12 +1,14 @@
 package com.vpvpteam.xmlinvoicevalidationbackend;
 
 import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -29,6 +31,9 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     protected MockMvc mockMvc;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Value("${app.admin.email}")
     protected String adminEmail;
 
@@ -49,5 +54,20 @@ public abstract class AbstractIntegrationTest {
                 .getContentAsString();
 
         return JsonPath.read(response, "$.token");
+    }
+
+    @BeforeEach
+    void cleanDatabase() {
+        jdbcTemplate.execute("""
+                TRUNCATE TABLE
+                    validation_issue,
+                    validation_output,
+                    batch_invoice,
+                    batch_vendor,
+                    validation_batch,
+                    business_rule,
+                    vendor
+                RESTART IDENTITY CASCADE
+                """);
     }
 }
