@@ -44,8 +44,8 @@ db_dump/
 # IntelliJ IDEA
 out/
 *.iml
-src/test/resources/invoices/Goodyear - Copy (2).xml
-src/test/resources/invoices/Goodyear - Copy.xml
+src/test/resources/invoices/Goodyear - invalid.xml
+src/test/resources/invoices/Goodyear - duplicate.xml
 src/test/resources/invoices/Goodyear.xml
 src/test/resources/invoices/Michelin.xml
 src/test/resources/invoices/Nokian.xml
