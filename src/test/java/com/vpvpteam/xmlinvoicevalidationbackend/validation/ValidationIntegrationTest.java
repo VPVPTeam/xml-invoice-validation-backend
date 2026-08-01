@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation;
 
+import com.jayway.jsonpath.JsonPath;
 import com.vpvpteam.xmlinvoicevalidationbackend.AbstractIntegrationTest;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.VendorEntity;
@@ -18,18 +19,33 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ValidationIntegrationTest extends AbstractIntegrationTest {
+
     private static final String KSEF_FORMAT = "KSEF";
+    private static final String UNKNOWN_BATCH_ID = "00000000-0000-0000-0000-000000000000";
 
     private static final InvoiceFixture GOODYEAR = new InvoiceFixture(
             "Goodyear.xml", "5211146938", "5860135336", "Goodyear Polska Sp. z o.o.");
 
+    private static final InvoiceFixture GOODYEAR_DUPLICATE = new InvoiceFixture(
+            "Goodyear - duplicate.xml", GOODYEAR.sellerTaxId(), GOODYEAR.invoiceNumber(), GOODYEAR.vendorName());
+
     private static final InvoiceFixture GOODYEAR_INVALID = new InvoiceFixture(
-            "Goodyear - Copy (2).xml", "UNKNOWN", "38294723948", null);
+            "Goodyear - invalid.xml", "UNKNOWN", "38294723948", null);
+
+    private static final InvoiceFixture MICHELIN = new InvoiceFixture(
+            "Michelin.xml", "7390203825", "VD16004393", null);
+
+    private static final InvoiceFixture NOKIAN = new InvoiceFixture(
+            "Nokian.xml", "5213876026", "960152352", null);
+
+    private static final InvoiceFixture SHELL = new InvoiceFixture(
+            "Shell.xml", "5261009190", "9573462586", null);
 
     @Autowired
     private VendorRepository vendorRepository;
@@ -53,6 +69,14 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.validationBatch.listOfVendorIds[0]").value(GOODYEAR.sellerTaxId()))
                 .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds.length()").value(1))
                 .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds[0]").value(GOODYEAR.invoiceId()));
+    }
+
+    @Test
+    void validate_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(multipart("/api/validation/validate")
+                        .file(invoiceFile(GOODYEAR.fileName()))
+                        .param("format", KSEF_FORMAT))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -105,8 +129,8 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
         VendorEntity vendor = createVendor(GOODYEAR);
         createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
 
-        validate(GOODYEAR.fileName(), "Goodyear - Copy.xml", GOODYEAR_INVALID.fileName(),
-                "Michelin.xml", "Nokian.xml", "Shell.xml")
+        validate(GOODYEAR.fileName(), GOODYEAR_DUPLICATE.fileName(), GOODYEAR_INVALID.fileName(),
+                MICHELIN.fileName(), NOKIAN.fileName(), SHELL.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.totalInvoices").value(5))
@@ -122,18 +146,18 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                         "TECHNICAL", "TECHNICAL", "BUSINESS")))
                 .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds.length()").value(5))
                 .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds", containsInAnyOrder(
-                        GOODYEAR_INVALID.invoiceId(),
                         GOODYEAR.invoiceId(),
-                        "7390203825|VD16004393",
-                        "5213876026|960152352",
-                        "5261009190|9573462586")))
+                        GOODYEAR_INVALID.invoiceId(),
+                        MICHELIN.invoiceId(),
+                        NOKIAN.invoiceId(),
+                        SHELL.invoiceId())))
                 .andExpect(jsonPath("$.validationBatch.listOfVendorIds.length()").value(5))
                 .andExpect(jsonPath("$.validationBatch.listOfVendorIds", containsInAnyOrder(
-                        GOODYEAR_INVALID.sellerTaxId(),
                         GOODYEAR.sellerTaxId(),
-                        "7390203825",
-                        "5213876026",
-                        "5261009190")));
+                        GOODYEAR_INVALID.sellerTaxId(),
+                        MICHELIN.sellerTaxId(),
+                        NOKIAN.sellerTaxId(),
+                        SHELL.sellerTaxId())));
     }
 
     @Test
@@ -166,6 +190,82 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.issues[0].fileName").value("broken.xml"));
     }
 
+    @Test
+    void getReport_withExistingBatch_returnsPersistedReport() throws Exception {
+        String batchId = validateAndGetBatchId(GOODYEAR_INVALID.fileName());
+
+        authorizedGet("/api/validation/report/" + batchId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.validationBatch.batchId").value(batchId))
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.totalInvoices").value(1))
+                .andExpect(jsonPath("$.validInvoices").value(0))
+                .andExpect(jsonPath("$.invoicesWithIssues").value(1))
+                .andExpect(jsonPath("$.issues.length()").value(2))
+                .andExpect(jsonPath("$.issues[*].ruleKey", everyItem(is("TECH_MISSING_REQUIRED_FIELD"))))
+                .andExpect(jsonPath("$.issues[*].fileName", everyItem(is(GOODYEAR_INVALID.fileName()))))
+                .andExpect(jsonPath("$.validationBatch.listOfInvoiceIds[0]")
+                        .value(GOODYEAR_INVALID.invoiceId()));
+    }
+
+    @Test
+    void getReport_withUnknownBatch_returnsNotFound() throws Exception {
+        authorizedGet("/api/validation/report/" + UNKNOWN_BATCH_ID)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Batch not found: " + UNKNOWN_BATCH_ID));
+    }
+
+    @Test
+    void getBatchesByVendor_returnsBatchesContainingVendor() throws Exception {
+        String batchId = validateAndGetBatchId(GOODYEAR.fileName());
+
+        authorizedGet("/api/validation/batches/by-vendor?vendorId=" + GOODYEAR.sellerTaxId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].batchId").value(batchId))
+                .andExpect(jsonPath("$.data[0].createdAt").isNotEmpty());
+    }
+
+    @Test
+    void getBatchesByVendor_withUnknownVendor_returnsEmptyList() throws Exception {
+        authorizedGet("/api/validation/batches/by-vendor?vendorId=0000000000")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0))
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.message").value("No data found for your request"));
+    }
+
+    @Test
+    void getIssuesByInvoice_returnsPersistedIssues() throws Exception {
+        validate(GOODYEAR_INVALID.fileName()).andExpect(status().isOk());
+
+        authorizedGet("/api/validation/issues/by-invoice"
+                + "?sellerTaxId=" + GOODYEAR_INVALID.sellerTaxId()
+                + "&invoiceNumber=" + GOODYEAR_INVALID.invoiceNumber())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[*].ruleKey", everyItem(is("TECH_MISSING_REQUIRED_FIELD"))))
+                .andExpect(jsonPath("$.data[*].fileName", everyItem(is(GOODYEAR_INVALID.fileName()))))
+                .andExpect(jsonPath("$.data[*].fieldPath", containsInAnyOrder(
+                        "Podmiot1.DaneIdentyfikacyjne.NIP",
+                        "Fa.FaWiersz[0].P_12")));
+    }
+
+    @Test
+    void getBatchesByInvoice_returnsBatchesContainingInvoice() throws Exception {
+        String batchId = validateAndGetBatchId(GOODYEAR.fileName());
+
+        authorizedGet("/api/validation/batches/by-invoice"
+                + "?sellerTaxId=" + GOODYEAR.sellerTaxId()
+                + "&invoiceNumber=" + GOODYEAR.invoiceNumber())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].batchId").value(batchId));
+    }
+
     private ResultActions validate(String... fileNames) throws Exception {
         MockMultipartFile[] files = new MockMultipartFile[fileNames.length];
 
@@ -185,6 +285,21 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
         return mockMvc.perform(request
                 .param("format", format)
+                .header("Authorization", "Bearer " + adminToken()));
+    }
+
+    private String validateAndGetBatchId(String... fileNames) throws Exception {
+        String response = validate(fileNames)
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return JsonPath.read(response, "$.validationBatch.batchId");
+    }
+
+    private ResultActions authorizedGet(String url) throws Exception {
+        return mockMvc.perform(get(url)
                 .header("Authorization", "Bearer " + adminToken()));
     }
 
