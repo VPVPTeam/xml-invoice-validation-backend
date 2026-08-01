@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,7 +35,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
             "Goodyear - duplicate.xml", GOODYEAR.sellerTaxId(), GOODYEAR.invoiceNumber(), GOODYEAR.vendorName());
 
     private static final InvoiceFixture GOODYEAR_INVALID = new InvoiceFixture(
-            "Goodyear - invalid.xml", "UNKNOWN", "38294723948", null);
+            "Goodyear - invalid.xml", "UNKNOWN", "38294723948", "Unknown Vendor");
 
     private static final InvoiceFixture MICHELIN = new InvoiceFixture(
             "Michelin.xml", "7390203825", "VD16004393", null);
@@ -101,6 +100,18 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void validate_withTechnicalError_skipsBusinessValidation() throws Exception {
+        VendorEntity vendor = createVendor(GOODYEAR_INVALID);
+        createRule(vendor, "CURRENCY_MUST_BE_XXX", "totals.currencyCode", RuleOperator.EQUALS, "XXX");
+
+        validate(GOODYEAR_INVALID.fileName())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.issues.length()").value(2))
+                .andExpect(jsonPath("$.issues[*].stage", everyItem(is("TECHNICAL"))));
+    }
+
+    @Test
     void validate_withViolatedBusinessRule_reportsOnlyViolatedRule() throws Exception {
         VendorEntity vendor = createVendor(GOODYEAR);
         createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
@@ -122,6 +133,27 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.validInvoices").value(0))
                 .andExpect(jsonPath("$.invoicesWithIssues").value(1))
                 .andExpect(jsonPath("$.duplicateInvoices").value(0));
+    }
+
+    @Test
+    void validate_withInvoiceFromPreviousBatch_reportsCrossBatchDuplicate() throws Exception {
+        String firstBatchId = validateAndGetBatchId(GOODYEAR.fileName());
+
+        validate(GOODYEAR.fileName())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WARNING"))
+                .andExpect(jsonPath("$.issues.length()").value(1))
+                .andExpect(jsonPath("$.issues[0].ruleKey").value("DUPLICATE_CROSS_BATCH"))
+                .andExpect(jsonPath("$.issues[0].stage").value("BUSINESS"))
+                .andExpect(jsonPath("$.issues[0].severity").value("WARNING"))
+                .andExpect(jsonPath("$.issues[0].fieldPath").value("invoiceId"))
+                .andExpect(jsonPath("$.issues[0].sellerTaxId").value(GOODYEAR.sellerTaxId()))
+                .andExpect(jsonPath("$.issues[0].invoiceNumber").value(GOODYEAR.invoiceNumber()))
+                .andExpect(jsonPath("$.issues[0].message", containsString(firstBatchId)))
+                .andExpect(jsonPath("$.totalInvoices").value(1))
+                .andExpect(jsonPath("$.validInvoices").value(1))
+                .andExpect(jsonPath("$.invoicesWithIssues").value(0))
+                .andExpect(jsonPath("$.duplicateInvoices").value(1));
     }
 
     @Test
@@ -296,11 +328,6 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                 .getContentAsString();
 
         return JsonPath.read(response, "$.validationBatch.batchId");
-    }
-
-    private ResultActions authorizedGet(String url) throws Exception {
-        return mockMvc.perform(get(url)
-                .header("Authorization", "Bearer " + adminToken()));
     }
 
     private VendorEntity createVendor(InvoiceFixture invoice) {
