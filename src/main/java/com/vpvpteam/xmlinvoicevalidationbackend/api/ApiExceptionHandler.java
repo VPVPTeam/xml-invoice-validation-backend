@@ -54,10 +54,10 @@ public final class ApiExceptionHandler {
     }
 
     @ExceptionHandler(UnsupportedFieldPathException.class)
-    public ResponseEntity<String> handleUnsupportedFieldPath(UnsupportedFieldPathException ex) {
+    public ResponseEntity<ErrorResponse> handleUnsupportedFieldPath(UnsupportedFieldPathException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ex.getMessage());
+                .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidRuleExpectedValueException.class)
