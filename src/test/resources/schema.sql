@@ -1,22 +1,3 @@
-TRUNCATE TABLE
-    validation_issue,
-    validation_output,
-    batch_invoice,
-    batch_vendor,
-    validation_batch,
-    business_rule,
-    vendor
-    RESTART IDENTITY CASCADE;
-
-DROP TABLE IF EXISTS validation_issue;
-DROP TABLE IF EXISTS validation_output;
-DROP TABLE IF EXISTS batch_invoice;
-DROP TABLE IF EXISTS batch_vendor;
-DROP TABLE IF EXISTS validation_batch;
-DROP TABLE IF EXISTS business_rule;
-DROP TABLE IF EXISTS vendor;
-DROP TABLE IF EXISTS app_user;
-
 CREATE TABLE validation_batch (
                                   id         BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                                   batch_id   VARCHAR(36) NOT NULL UNIQUE,

@@ -129,7 +129,7 @@ public class ValidationPersistenceService {
 
     private void checkVendorNotExistsOrThrow(String vendorTaxId) {
         if (vendorRepository.findByTaxId(vendorTaxId).isPresent()) {
-            throw new EntityAlreadyExistsException("Vendor already exists:  " + vendorTaxId);
+            throw new EntityAlreadyExistsException("Vendor already exists: " + vendorTaxId);
         }
     }
 

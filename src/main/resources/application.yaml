@@ -19,7 +19,7 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-chars-long}
-    expiration-ms: 3600000
+    expiration-ms: 604800000
 
   admin:
     email: ${ADMIN_EMAIL:admin@example.com}
