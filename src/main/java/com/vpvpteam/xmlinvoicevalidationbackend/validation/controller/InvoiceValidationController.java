@@ -102,7 +102,7 @@ public final class InvoiceValidationController {
     @GetMapping("/batches/by-invoice")
     public ListResponse<BatchSummary> getBatchesByInvoice(@RequestParam String sellerTaxId,
                                                           @RequestParam String invoiceNumber) {
-        String invoiceId = sellerTaxId + "|" + invoiceNumber;
+        String invoiceId = new InvoiceId(sellerTaxId, invoiceNumber).value();
 
         List<BatchSummary> batches = queryService.getBatchesByInvoiceId(invoiceId)
                 .entrySet().stream()

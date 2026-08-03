@@ -149,7 +149,35 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
             checkRequired(FieldCheck.notNullNorBlank(id.getTaxId()), xmlFileName, basePath + ".DaneIdentyfikacyjne.NIP", sellerTaxId, invoiceNumber, issues);
             checkRequired(FieldCheck.notNullNorBlank(id.getName()), xmlFileName, basePath + ".DaneIdentyfikacyjne.Nazwa", sellerTaxId, invoiceNumber, issues);
         }
+    }
 
+    private void validateParty(KsefInvoiceXmlDto.Party party, String basePath, TechnicalIssueCollector collector) {
+        collector.checkRequired(party != null, basePath);
+
+        if (party == null) {
+            return;
+        }
+
+        validateIdentificationData(party.getIdentificationData(), basePath, collector);
+        validateAddress(party.getAddress(), basePath, collector);
+    }
+
+    private void validateIdentificationData(KsefInvoiceXmlDto.IdentificationData identificationData,
+                                            String basePath,
+                                            TechnicalIssueCollector collector) {
+        collector.checkRequired(identificationData != null, basePath + ".DaneIdentyfikacyjne");
+
+        if (identificationData == null) {
+            return;
+        }
+
+        collector.checkRequired(FieldCheck.notNullNorBlank(identificationData.getTaxId()),
+                basePath + ".DaneIdentyfikacyjne.NIP");
+        collector.checkRequired(FieldCheck.notNullNorBlank(identificationData.getName()),
+                basePath + ".DaneIdentyfikacyjne.Nazwa");
+    }
+
+    private void validateAddressData() {
         // 3) Validate address section and minimum required address fields.
         KsefInvoiceXmlDto.Address address = party.getAddress();
         checkRequired(address != null, xmlFileName, basePath + ".Adres", sellerTaxId, invoiceNumber, issues);
@@ -181,5 +209,14 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
                     TechnicalIssueMessages.missingRequiredField(fieldPath)
             ));
         }
+    }
+
+    private void validateBodyHeader(KsefInvoiceXmlDto.InvoiceBody body, TechnicalIssueCollector collector) {
+        collector.checkRequired(FieldCheck.notNullNorBlank(body.getInvoiceNumber()), "Fa.P_2");
+        collector.checkRequired(FieldCheck.notNullNorBlank(body.getIssueDate()), "Fa.P_1");
+        collector.checkRequired(FieldCheck.notNullNorBlank(body.getCurrencyCode()), "Fa.KodWaluty");
+        collector.checkRequired(body.getTotalNet() != null, "Fa.P_13_1");
+        collector.checkRequired(body.getTotalTax() != null, "Fa.P_14_1");
+        collector.checkRequired(body.getTotalGross() != null, "Fa.P_15");
     }
 }

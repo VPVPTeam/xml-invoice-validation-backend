@@ -57,7 +57,7 @@ public final class ValidationOutput {
 
         Set<String> invoiceIdsWithRealIssues = issues.stream()
                 .filter(issue -> !isDuplicateIssue(issue))
-                .map(this::invoiceId)
+                .map(this::invoiceIdOf)
                 .filter(distinctInvoiceIds::contains)
                 .collect(Collectors.toSet());
 
@@ -71,7 +71,7 @@ public final class ValidationOutput {
                 || DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH.equals(issue.getRuleKey());
     }
 
-    private String invoiceId(ValidationIssue issue) {
-        return issue.getSellerTaxId() + "|" + issue.getInvoiceNumber();
+    private String invoiceIdOf(ValidationIssue issue) {
+        return new InvoiceId(issue.getSellerTaxId(), issue.getInvoiceNumber()).value();
     }
 }

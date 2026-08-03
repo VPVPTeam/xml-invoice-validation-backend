@@ -2,10 +2,9 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
@@ -58,10 +57,9 @@ public final class ValidationService {
         Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
         if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            allIssues.add(new ValidationIssue(
-                    "", "", "",
-                    ValidationStage.TECHNICAL,
-                    Severity.ERROR,
+            allIssues.add(ValidationIssue.technicalError(
+                    "",
+                    InvoiceId.NONE,
                     "TECH_EMPTY_BATCH",
                     "batch",
                     TechnicalIssueMessages.emptyBatch()
@@ -79,12 +77,9 @@ public final class ValidationService {
             try {
                 technicalOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
             } catch (Exception ex) {
-                allIssues.add(new ValidationIssue(
+                allIssues.add(ValidationIssue.technicalError(
                         xmlFileData.fileName(),
-                        "",
-                        "",
-                        ValidationStage.TECHNICAL,
-                        Severity.ERROR,
+                        InvoiceId.NONE,
                         "TECH_XML_PARSE_ERROR",
                         "xml",
                         TechnicalIssueMessages.xmlParseError(xmlFileData.fileName(), ex)
@@ -92,20 +87,15 @@ public final class ValidationService {
                 continue;
             }
 
-            String sellerTaxId = technicalOutput.getSellerTaxId();
-            String invoiceNumber = technicalOutput.getInvoiceNumber();
-            String invoiceId = sellerTaxId + "|" + invoiceNumber;
+            InvoiceId invoiceId = new InvoiceId(technicalOutput.getSellerTaxId(), technicalOutput.getInvoiceNumber());
 
-            vendorIds.add(sellerTaxId);
-            invoiceIds.add(invoiceId);
+            vendorIds.add(invoiceId.sellerTaxId());
+            invoiceIds.add(invoiceId.value());
 
-            if (!seenInvoiceIdsInBatch.add(invoiceId)) {
-                allIssues.add(new ValidationIssue(
+            if (!seenInvoiceIdsInBatch.add(invoiceId.value())) {
+                allIssues.add(ValidationIssue.businessWarning(
                         xmlFileData.fileName(),
-                        invoiceNumber,
-                        sellerTaxId,
-                        ValidationStage.BUSINESS,
-                        Severity.WARNING,
+                        invoiceId,
                         DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH,
                         "invoiceId",
                         DuplicateIssueMessages.duplicateInBatch()
@@ -114,14 +104,12 @@ public final class ValidationService {
                 continue;
             }
 
-            Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId);
+            Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId.value());
+
             if (!previousBatches.isEmpty()) {
-                allIssues.add(new ValidationIssue(
+                allIssues.add(ValidationIssue.businessWarning(
                         xmlFileData.fileName(),
-                        invoiceNumber,
-                        sellerTaxId,
-                        ValidationStage.BUSINESS,
-                        Severity.WARNING,
+                        invoiceId,
                         DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH,
                         "invoiceId",
                         DuplicateIssueMessages.duplicateCrossBatch(previousBatches)

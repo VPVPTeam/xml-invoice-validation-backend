@@ -3,9 +3,8 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business;
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.ValidationStage;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.BusinessIssueMessages;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRuleRepository;
 import lombok.AllArgsConstructor;
@@ -24,10 +23,9 @@ public final class BusinessValidator {
     public BusinessValidationOutput validate(CanonicalInvoice invoice, String fileName) {
         List<ValidationIssue> issues = new ArrayList<>();
 
-        String sellerTaxId = invoice.getHeader().getSeller().getTaxId();
-        String invoiceNumber = invoice.getHeader().getInvoiceNumber();
+        InvoiceId invoiceId = new InvoiceId(invoice.getHeader().getSeller().getTaxId(), invoice.getHeader().getInvoiceNumber());
 
-        List<BusinessRuleEntity> rules = businessRuleRepository.findByVendor_TaxId(sellerTaxId);
+        List<BusinessRuleEntity> rules = businessRuleRepository.findByVendor_TaxId(invoiceId.sellerTaxId());
 
         if (rules.isEmpty()) {
             return BusinessValidationOutput.of(issues);
@@ -39,12 +37,9 @@ public final class BusinessValidator {
             try {
                 actualValue = fieldValueExtractor.extract(invoice, rule.getFieldPath());
             } catch (UnsupportedFieldPathException e) {
-                issues.add(new ValidationIssue(
+                issues.add(ValidationIssue.businessWarning(
                         fileName,
-                        invoiceNumber,
-                        sellerTaxId,
-                        ValidationStage.BUSINESS,
-                        Severity.WARNING,
+                        invoiceId,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
                         BusinessIssueMessages.unsupportedFieldPath(rule.getRuleKey(), rule.getFieldPath())
@@ -67,12 +62,9 @@ public final class BusinessValidator {
                         actualValue
                 );
 
-                issues.add(new ValidationIssue(
+                issues.add(ValidationIssue.businessWarning(
                         fileName,
-                        invoiceNumber,
-                        sellerTaxId,
-                        ValidationStage.BUSINESS,
-                        Severity.WARNING,
+                        invoiceId,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
                         message
