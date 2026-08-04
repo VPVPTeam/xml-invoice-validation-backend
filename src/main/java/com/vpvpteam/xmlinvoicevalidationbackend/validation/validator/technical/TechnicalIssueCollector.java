@@ -1,6 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.RuleKeys;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
@@ -14,8 +15,6 @@ import java.util.List;
  * state its own condition and field path.
  */
 final class TechnicalIssueCollector {
-    private static final String MISSING_REQUIRED_FIELD = "TECH_MISSING_REQUIRED_FIELD";
-
     private final String fileName;
     private final InvoiceId invoiceId;
     private final List<ValidationIssue> issues = new ArrayList<>();
@@ -35,7 +34,7 @@ final class TechnicalIssueCollector {
         issues.add(ValidationIssue.technicalError(
                 fileName,
                 invoiceId,
-                MISSING_REQUIRED_FIELD,
+                RuleKeys.TECH_MISSING_REQUIRED_FIELD,
                 fieldPath,
                 TechnicalIssueMessages.missingRequiredField(fieldPath)
         ));

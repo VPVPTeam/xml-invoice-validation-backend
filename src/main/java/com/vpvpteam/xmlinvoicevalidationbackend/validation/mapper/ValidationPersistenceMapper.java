@@ -33,16 +33,20 @@ public final class ValidationPersistenceMapper {
     // Output
     public ValidationOutput toModel(ValidationOutputEntity outputEntity) {
         ValidationBatch batch = toModel(outputEntity.getValidationBatch());
-        ValidationOutput output = new ValidationOutput(batch);
 
-        output.setStatus(outputEntity.getStatus());
-        output.setTotalInvoices(outputEntity.getTotalInvoices());
-        output.setValidInvoices(outputEntity.getValidInvoices());
-        output.setInvoicesWithIssues(outputEntity.getInvoicesWithIssues());
-        output.setDuplicateInvoices(outputEntity.getDuplicateInvoices());
-        output.setIssues(toModel(outputEntity.getIssues()));
+        BatchTotals totals = new BatchTotals(
+                outputEntity.getTotalInvoices(),
+                outputEntity.getValidInvoices(),
+                outputEntity.getInvoicesWithIssues(),
+                outputEntity.getDuplicateInvoices()
+        );
 
-        return output;
+        return ValidationOutput.restored(
+                batch,
+                outputEntity.getStatus(),
+                toModel(outputEntity.getIssues()),
+                totals
+        );
     }
 
     public ValidationOutputEntity toEntity(ValidationOutput outputModel, ValidationBatchEntity batchEntity) {
@@ -146,6 +150,7 @@ public final class ValidationPersistenceMapper {
 
         return rule;
     }
+
     public BusinessRuleEntity toEntity(BusinessRule model, VendorEntity vendorEntity) {
         BusinessRuleEntity entity = new BusinessRuleEntity();
 

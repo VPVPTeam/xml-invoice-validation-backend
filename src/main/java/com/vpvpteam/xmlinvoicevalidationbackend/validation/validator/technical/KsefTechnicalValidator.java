@@ -3,6 +3,7 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.KsefInvoiceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.ksef.dto.KsefInvoiceXmlDto;
 import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.RuleKeys;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
@@ -16,8 +17,6 @@ import java.util.List;
  */
 @Component
 public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvoiceXmlDto> {
-    private static final String CANONICAL_MAPPING_FAILED = "TECH_CANONICAL_MAPPING_FAILED";
-
     private final KsefInvoiceMapper mapper;
 
     public KsefTechnicalValidator(KsefInvoiceMapper mapper) {
@@ -55,7 +54,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
             ValidationIssue issue = ValidationIssue.technicalError(
                     xmlFileName,
                     invoiceId,
-                    CANONICAL_MAPPING_FAILED,
+                    RuleKeys.TECH_CANONICAL_MAPPING_FAILED,
                     "canonicalInvoice",
                     TechnicalIssueMessages.canonicalMappingFailed(xmlFileName, ex)
             );
