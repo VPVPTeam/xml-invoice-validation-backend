@@ -5,6 +5,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsEx
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.InvalidRuleExpectedValueException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFormatException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -55,6 +56,13 @@ public final class ApiExceptionHandler {
 
     @ExceptionHandler(UnsupportedFieldPathException.class)
     public ResponseEntity<ErrorResponse> handleUnsupportedFieldPath(UnsupportedFieldPathException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UnsupportedFormatException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedFormat(UnsupportedFormatException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage()));

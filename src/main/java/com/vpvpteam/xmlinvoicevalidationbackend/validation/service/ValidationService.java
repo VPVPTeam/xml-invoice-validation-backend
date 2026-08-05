@@ -1,8 +1,10 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFormatException;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.RuleKeys;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
@@ -41,101 +43,106 @@ public final class ValidationService {
         this.validationBatchDao = validationBatchDao;
     }
 
-    public Set<String> getSupportedFormats() {
-        return Collections.unmodifiableSet(processors.keySet());
-    }
-
     public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String format) {
-        FormatProcessor processor = processors.get(format);
-
         ValidationBatch batch = new ValidationBatch();
-        ValidationOutput output = new ValidationOutput(batch);
-
-        List<ValidationIssue> allIssues = new ArrayList<>();
-        Set<String> vendorIds = new LinkedHashSet<>();
-        Set<String> invoiceIds = new LinkedHashSet<>();
-        Set<String> seenInvoiceIdsInBatch = new HashSet<>();
 
         if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            allIssues.add(ValidationIssue.technicalError(
-                    "",
-                    InvoiceId.NONE,
-                    "TECH_EMPTY_BATCH",
-                    "batch",
-                    TechnicalIssueMessages.emptyBatch()
-            ));
-
-            batch.setListOfVendorIds(List.of());
-            batch.setListOfInvoiceIds(List.of());
-            output.setIssues(allIssues);
-            output.prepareFinalReport();
-            return output;
+            return emptyBatchOutput(batch);
         }
+
+        FormatProcessor processor = resolveProcessor(format);
+        BatchAccumulator accumulator = new BatchAccumulator();
 
         for (XmlFileData xmlFileData : xmlFilesData) {
-            TechnicalValidationOutput technicalOutput;
-            try {
-                technicalOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
-            } catch (Exception ex) {
-                allIssues.add(ValidationIssue.technicalError(
-                        xmlFileData.fileName(),
-                        InvoiceId.NONE,
-                        "TECH_XML_PARSE_ERROR",
-                        "xml",
-                        TechnicalIssueMessages.xmlParseError(xmlFileData.fileName(), ex)
-                ));
-                continue;
-            }
-
-            InvoiceId invoiceId = new InvoiceId(technicalOutput.getSellerTaxId(), technicalOutput.getInvoiceNumber());
-
-            vendorIds.add(invoiceId.sellerTaxId());
-            invoiceIds.add(invoiceId.value());
-
-            if (!seenInvoiceIdsInBatch.add(invoiceId.value())) {
-                allIssues.add(ValidationIssue.businessWarning(
-                        xmlFileData.fileName(),
-                        invoiceId,
-                        DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH,
-                        "invoiceId",
-                        DuplicateIssueMessages.duplicateInBatch()
-                ));
-                output.increaseDuplicateInvoicesCount();
-                continue;
-            }
-
-            Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId.value());
-
-            if (!previousBatches.isEmpty()) {
-                allIssues.add(ValidationIssue.businessWarning(
-                        xmlFileData.fileName(),
-                        invoiceId,
-                        DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH,
-                        "invoiceId",
-                        DuplicateIssueMessages.duplicateCrossBatch(previousBatches)
-                ));
-                output.increaseDuplicateInvoicesCount();
-            }
-
-            if (technicalOutput.hasErrors()) {
-                allIssues.addAll(technicalOutput.getIssues());
-                continue;
-            }
-
-            BusinessValidationOutput businessOutput = businessValidator.validate(
-                    technicalOutput.getCanonicalInvoice(),
-                    xmlFileData.fileName()
-            );
-            allIssues.addAll(businessOutput.getIssues());
+            validateFile(xmlFileData, processor, accumulator);
         }
 
-        batch.setListOfVendorIds(new ArrayList<>(vendorIds));
-        batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
-        output.setIssues(allIssues);
-        output.prepareFinalReport();
-
+        ValidationOutput output = accumulator.toOutput(batch);
         persistenceService.save(output);
 
         return output;
+    }
+
+    private FormatProcessor resolveProcessor(String format) {
+        FormatProcessor processor = processors.get(format);
+
+        if (processor == null) {
+            throw new UnsupportedFormatException("Unsupported format: " + format
+                    + ". Supported: " + processors.keySet());
+        }
+
+        return processor;
+    }
+
+    private ValidationOutput emptyBatchOutput(ValidationBatch batch) {
+        BatchAccumulator accumulator = new BatchAccumulator();
+
+        accumulator.addIssue(ValidationIssue.technicalError(
+                "",
+                InvoiceId.NONE,
+                RuleKeys.TECH_EMPTY_BATCH,
+                "batch",
+                TechnicalIssueMessages.emptyBatch()
+        ));
+
+        return accumulator.toOutput(batch);
+    }
+
+    private void validateFile(XmlFileData xmlFileData, FormatProcessor processor, BatchAccumulator accumulator) {
+        TechnicalValidationOutput technicalOutput;
+        try {
+            technicalOutput = processor.process(xmlFileData.xmlInputStream(), xmlFileData.fileName());
+        } catch (Exception ex) {
+            accumulator.addIssue(ValidationIssue.technicalError(
+                    xmlFileData.fileName(),
+                    InvoiceId.NONE,
+                    RuleKeys.TECH_XML_PARSE_ERROR,
+                    "xml",
+                    TechnicalIssueMessages.xmlParseError(xmlFileData.fileName(), ex)
+            ));
+            return;
+        }
+
+        InvoiceId invoiceId = new InvoiceId(technicalOutput.getSellerTaxId(), technicalOutput.getInvoiceNumber());
+
+        if (!accumulator.registerInvoice(invoiceId)) {
+            accumulator.addDuplicateIssue(ValidationIssue.businessWarning(
+                    xmlFileData.fileName(),
+                    invoiceId,
+                    RuleKeys.DUPLICATE_IN_BATCH,
+                    "invoiceId",
+                    DuplicateIssueMessages.duplicateInBatch()
+            ));
+            return;
+        }
+
+        checkPreviousBatches(xmlFileData.fileName(), invoiceId, accumulator);
+
+        if (technicalOutput.hasErrors()) {
+            accumulator.addIssues(technicalOutput.getIssues());
+            return;
+        }
+
+        BusinessValidationOutput businessOutput = businessValidator.validate(
+                technicalOutput.getCanonicalInvoice(),
+                xmlFileData.fileName()
+        );
+        accumulator.addIssues(businessOutput.getIssues());
+    }
+
+    private void checkPreviousBatches(String fileName, InvoiceId invoiceId, BatchAccumulator accumulator) {
+        Map<String, OffsetDateTime> previousBatches = validationBatchDao.findBatchesByInvoiceId(invoiceId.value());
+
+        if (previousBatches.isEmpty()) {
+            return;
+        }
+
+        accumulator.addDuplicateIssue(ValidationIssue.businessWarning(
+                fileName,
+                invoiceId,
+                RuleKeys.DUPLICATE_CROSS_BATCH,
+                "invoiceId",
+                DuplicateIssueMessages.duplicateCrossBatch(previousBatches)
+        ));
     }
 }
