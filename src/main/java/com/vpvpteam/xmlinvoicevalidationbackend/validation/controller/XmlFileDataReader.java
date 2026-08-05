@@ -14,6 +14,7 @@ import java.util.List;
 /**
  * Converts uploaded multipart files into the format-independent input of the validation service.
  * Belongs to the web layer: MultipartFile is a Spring Web type and must not reach the service.
+ * Missing upload is returned as an empty list; rejecting an empty batch is the service's decision.
  */
 final class XmlFileDataReader {
     private static final String UNKNOWN_FILE_NAME = "UNKNOWN";
@@ -21,6 +22,10 @@ final class XmlFileDataReader {
     private XmlFileDataReader() {}
 
     static List<XmlFileData> read(List<MultipartFile> files) {
+        if (files == null) {
+            return List.of();
+        }
+
         List<XmlFileData> xmlFilesData = new ArrayList<>(files.size());
 
         for (MultipartFile file : files) {

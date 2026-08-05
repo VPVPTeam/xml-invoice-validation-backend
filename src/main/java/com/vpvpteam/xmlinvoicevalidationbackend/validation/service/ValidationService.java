@@ -1,5 +1,6 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EmptyBatchException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFormatException;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
@@ -44,13 +45,10 @@ public final class ValidationService {
     }
 
     public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String format) {
-        ValidationBatch batch = new ValidationBatch();
-
-        if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            return emptyBatchOutput(batch);
-        }
+        ensureBatchIsNotEmpty(xmlFilesData);
 
         FormatProcessor processor = resolveProcessor(format);
+        ValidationBatch batch = new ValidationBatch();
         BatchAccumulator accumulator = new BatchAccumulator();
 
         for (XmlFileData xmlFileData : xmlFilesData) {
@@ -63,6 +61,12 @@ public final class ValidationService {
         return output;
     }
 
+    private void ensureBatchIsNotEmpty(List<XmlFileData> xmlFilesData) {
+        if (xmlFilesData == null || xmlFilesData.isEmpty()) {
+            throw new EmptyBatchException("Batch has no XML files to validate");
+        }
+    }
+
     private FormatProcessor resolveProcessor(String format) {
         FormatProcessor processor = processors.get(format);
 
@@ -72,20 +76,6 @@ public final class ValidationService {
         }
 
         return processor;
-    }
-
-    private ValidationOutput emptyBatchOutput(ValidationBatch batch) {
-        BatchAccumulator accumulator = new BatchAccumulator();
-
-        accumulator.addIssue(ValidationIssue.technicalError(
-                "",
-                InvoiceId.NONE,
-                RuleKeys.TECH_EMPTY_BATCH,
-                "batch",
-                TechnicalIssueMessages.emptyBatch()
-        ));
-
-        return accumulator.toOutput(batch);
     }
 
     private void validateFile(XmlFileData xmlFileData, FormatProcessor processor, BatchAccumulator accumulator) {
@@ -103,7 +93,7 @@ public final class ValidationService {
             return;
         }
 
-        InvoiceId invoiceId = new InvoiceId(technicalOutput.getSellerTaxId(), technicalOutput.getInvoiceNumber());
+        InvoiceId invoiceId = technicalOutput.getInvoiceId();
 
         if (!accumulator.registerInvoice(invoiceId)) {
             accumulator.addDuplicateIssue(ValidationIssue.businessWarning(

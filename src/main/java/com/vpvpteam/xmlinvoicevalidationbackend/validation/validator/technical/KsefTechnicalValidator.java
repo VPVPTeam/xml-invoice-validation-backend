@@ -29,7 +29,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
             TechnicalIssueCollector collector = new TechnicalIssueCollector(xmlFileName, InvoiceId.NONE);
             collector.addMissingField("Faktura");
 
-            return TechnicalValidationOutput.failure(collector.issues());
+            return TechnicalValidationOutput.failure(InvoiceId.NONE, collector.issues());
         }
 
         InvoiceId invoiceId = new InvoiceId(dto.safeSellerTaxId(), dto.safeInvoiceNumber());
@@ -41,7 +41,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
 
         // Mapper expects every required field to be present, so we stop before it.
         if (collector.hasErrors()) {
-            return TechnicalValidationOutput.failure(collector.issues());
+            return TechnicalValidationOutput.failure(invoiceId, collector.issues());
         }
 
         return mapToCanonical(dto, xmlFileName, invoiceId);
@@ -49,7 +49,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
 
     private TechnicalValidationOutput mapToCanonical(KsefInvoiceXmlDto dto, String xmlFileName, InvoiceId invoiceId) {
         try {
-            return TechnicalValidationOutput.success(mapper.toCanonical(dto));
+            return TechnicalValidationOutput.success(invoiceId, mapper.toCanonical(dto));
         } catch (Exception ex) {
             ValidationIssue issue = ValidationIssue.technicalError(
                     xmlFileName,
@@ -59,7 +59,7 @@ public final class KsefTechnicalValidator implements TechnicalValidator<KsefInvo
                     TechnicalIssueMessages.canonicalMappingFailed(xmlFileName, ex)
             );
 
-            return TechnicalValidationOutput.failure(List.of(issue));
+            return TechnicalValidationOutput.failure(invoiceId, List.of(issue));
         }
     }
 

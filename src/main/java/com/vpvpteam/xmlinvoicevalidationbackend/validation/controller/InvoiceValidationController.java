@@ -1,10 +1,9 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.ListResponse;
-import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.PersistenceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.*;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
@@ -21,7 +20,7 @@ import java.util.List;
 public final class InvoiceValidationController {
     private final ValidationService validationService;
     private final ValidationQueryService queryService;
-    private final ValidationPersistenceMapper persistenceMapper;
+    private final PersistenceMapper persistenceMapper;
 
     @PostMapping(
             value = "/validate",
@@ -30,10 +29,6 @@ public final class InvoiceValidationController {
     )
     public ValidationOutput validateXmlInputs(@RequestParam("file") List<MultipartFile> files,
                                               @RequestParam("format") String format) {
-        if (files == null || files.isEmpty()) {
-            throw new ApiBadRequestException("Empty batch");
-        }
-
         return validationService.validateBatch(XmlFileDataReader.read(files), format);
     }
 

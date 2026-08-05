@@ -24,14 +24,6 @@ public final class KsefFormatProcessor implements FormatProcessor {
     public TechnicalValidationOutput process(InputStream xmlInput, String fileName) {
         KsefInvoiceXmlDto dto = parser.parse(xmlInput);
 
-        TechnicalValidationOutput output = technicalValidator.validate(dto, fileName);
-        if (dto == null) {
-            return output;
-        }
-
-        output.setSellerTaxId(dto.safeSellerTaxId());
-        output.setInvoiceNumber(dto.safeInvoiceNumber());
-
-        return output;
+        return technicalValidator.validate(dto, fileName);
     }
 }

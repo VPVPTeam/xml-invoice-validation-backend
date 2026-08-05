@@ -5,10 +5,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.util.ExceptionUtils;
 public final class TechnicalIssueMessages {
     private TechnicalIssueMessages() {}
 
-    public static String emptyBatch() {
-        return "Batch has no XML files to validate.";
-    }
-
     public static String xmlParseError(String fileName, Exception ex) {
         return "Cannot parse XML file '" + fileName + "': " + ExceptionUtils.safeMessage(ex);
     }
