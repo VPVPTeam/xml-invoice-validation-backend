@@ -1,10 +1,12 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.api;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.exceptions.ApiBadRequestException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EmptyBatchException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityAlreadyExistsException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.InvalidRuleExpectedValueException;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
+import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFormatException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,8 +23,14 @@ import java.util.stream.Collectors;
 public final class ApiExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
-    @ExceptionHandler(ApiBadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(ApiBadRequestException ex) {
+    @ExceptionHandler({
+            ApiBadRequestException.class,
+            EmptyBatchException.class,
+            UnsupportedFormatException.class,
+            UnsupportedFieldPathException.class,
+            InvalidRuleExpectedValueException.class
+    })
+    public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage()));
@@ -51,20 +59,6 @@ public final class ApiExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(message));
-    }
-
-    @ExceptionHandler(UnsupportedFieldPathException.class)
-    public ResponseEntity<ErrorResponse> handleUnsupportedFieldPath(UnsupportedFieldPathException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(ex.getMessage()));
-    }
-
-    @ExceptionHandler(InvalidRuleExpectedValueException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidRuleExpectedValue(InvalidRuleExpectedValueException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(AuthenticationException.class)

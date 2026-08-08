@@ -1,9 +1,9 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.ListResponse;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.ValidationPersistenceMapper;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.PersistenceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.BusinessRule;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationPersistenceService;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.BusinessRulePersistenceService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -17,8 +17,8 @@ import java.util.List;
 @RequestMapping("/api/rules")
 public final class BusinessRuleController {
     private final ValidationQueryService queryService;
-    private final ValidationPersistenceService persistenceService;
-    private final ValidationPersistenceMapper persistenceMapper;
+    private final BusinessRulePersistenceService ruleService;
+    private final PersistenceMapper persistenceMapper;
 
     @GetMapping("/by-vendor")
     public ListResponse<BusinessRule> getRulesByVendor(@RequestParam String vendorTaxId) {
@@ -33,20 +33,20 @@ public final class BusinessRuleController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public BusinessRule createRule(@Valid @RequestBody BusinessRule rule) {
-        return persistenceService.save(rule);
+        return ruleService.save(rule);
     }
 
     @PutMapping("/{ruleKey}")
     public BusinessRule updateRule(@PathVariable String ruleKey,
                                    @Valid @RequestBody BusinessRule rule) {
         rule.setRuleKey(ruleKey);
-        return persistenceService.update(rule);
+        return ruleService.update(rule);
     }
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRule(@RequestParam String vendorTaxId,
                            @RequestParam String ruleKey) {
-        persistenceService.delete(vendorTaxId, ruleKey);
+        ruleService.delete(vendorTaxId, ruleKey);
     }
 }

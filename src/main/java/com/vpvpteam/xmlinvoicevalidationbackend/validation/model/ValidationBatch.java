@@ -1,28 +1,52 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.Objects.requireNonNull;
+
+/**
+ * Identity and contents of one validation batch.
+ * Immutable: the id lists are fixed at the moment the batch is completed.
+ */
 @Getter
-@Setter
 public final class ValidationBatch {
     private final String batchId;
     private final OffsetDateTime createdAt;
-    private List<String> listOfVendorIds = new ArrayList<>();
-    private List<String> listOfInvoiceIds = new ArrayList<>();
+    private final List<String> listOfVendorIds;
+    private final List<String> listOfInvoiceIds;
 
-    public ValidationBatch() {
-        this.batchId = UUID.randomUUID().toString();
-        this.createdAt = OffsetDateTime.now();
-    }
-
-    public ValidationBatch(String batchId, OffsetDateTime createdAt) {
+    private ValidationBatch(String batchId,
+                            OffsetDateTime createdAt,
+                            List<String> listOfVendorIds,
+                            List<String> listOfInvoiceIds) {
         this.batchId = batchId;
         this.createdAt = createdAt;
+        this.listOfVendorIds = List.copyOf(requireNonNull(listOfVendorIds, "listOfVendorIds must not be null"));
+        this.listOfInvoiceIds = List.copyOf(requireNonNull(listOfInvoiceIds, "listOfInvoiceIds must not be null"));
+    }
+
+    public static ValidationBatch created(List<String> listOfVendorIds, List<String> listOfInvoiceIds) {
+        return new ValidationBatch(
+                UUID.randomUUID().toString(),
+                OffsetDateTime.now(),
+                listOfVendorIds,
+                listOfInvoiceIds
+        );
+    }
+
+    public static ValidationBatch restored(String batchId,
+                                           OffsetDateTime createdAt,
+                                           List<String> listOfVendorIds,
+                                           List<String> listOfInvoiceIds) {
+        return new ValidationBatch(
+                requireNonNull(batchId, "batchId must not be null"),
+                createdAt,
+                listOfVendorIds,
+                listOfInvoiceIds
+        );
     }
 }
