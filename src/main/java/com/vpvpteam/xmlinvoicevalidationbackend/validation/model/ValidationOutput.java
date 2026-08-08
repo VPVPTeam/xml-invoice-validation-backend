@@ -1,77 +1,72 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.model;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
 import lombok.Getter;
-import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 /**
  * Final batch-level validation result.
- * Keeps summary status, ids, issue list and counters.
+ * Immutable: status and counters are consistent with the issue list from the moment of creation.
  */
 @Getter
-@Setter
 public final class ValidationOutput {
     private final ValidationBatch validationBatch;
+    private final Severity status;
+    private final List<ValidationIssue> issues;
+    private final int totalInvoices;
+    private final int validInvoices;
+    private final int invoicesWithIssues;
+    private final int duplicateInvoices;
 
-    private Severity status = Severity.OK;
-    private List<ValidationIssue> issues = new ArrayList<>();
-    private int totalInvoices = 0;
-    private int validInvoices = 0;
-    private int invoicesWithIssues = 0;
-    private int duplicateInvoices = 0;
-
-    public ValidationOutput(ValidationBatch validationBatch) {
+    private ValidationOutput(ValidationBatch validationBatch,
+                             Severity status,
+                             List<ValidationIssue> issues,
+                             BatchTotals totals) {
         this.validationBatch = requireNonNull(validationBatch, "validationBatch must not be null");
+        this.status = requireNonNull(status, "status must not be null");
+        this.issues = issues;
+        this.totalInvoices = totals.totalInvoices();
+        this.validInvoices = totals.validInvoices();
+        this.invoicesWithIssues = totals.invoicesWithIssues();
+        this.duplicateInvoices = totals.duplicateInvoices();
     }
 
-    public void prepareFinalReport() {
-        resolveStatus();
-        calculateBatchTotals();
+    public static ValidationOutput of(ValidationBatch validationBatch,
+                                      List<ValidationIssue> issues,
+                                      int duplicateInvoices) {
+        requireNonNull(validationBatch, "validationBatch must not be null");
+        List<ValidationIssue> safeIssues = List.copyOf(requireNonNull(issues, "issues must not be null"));
+
+        return new ValidationOutput(
+                validationBatch,
+                resolveStatus(safeIssues),
+                safeIssues,
+                BatchTotals.compute(validationBatch.getListOfInvoiceIds(), safeIssues, duplicateInvoices)
+        );
     }
 
-    public void increaseDuplicateInvoicesCount() {
-        duplicateInvoices++;
+    public static ValidationOutput restored(ValidationBatch validationBatch,
+                                            Severity status,
+                                            List<ValidationIssue> issues,
+                                            BatchTotals totals) {
+        return new ValidationOutput(
+                validationBatch,
+                status,
+                List.copyOf(requireNonNull(issues, "issues must not be null")),
+                requireNonNull(totals, "totals must not be null")
+        );
     }
 
-    private void resolveStatus() {
-        if (issues == null || issues.isEmpty()) { return; }
-
-        if (issues.stream().anyMatch(i -> i.getSeverity() == Severity.ERROR)) {
-            setStatus(Severity.ERROR);
-        } else if (issues.stream().anyMatch(i -> i.getSeverity() == Severity.WARNING)) {
-            setStatus(Severity.WARNING);
+    private static Severity resolveStatus(List<ValidationIssue> issues) {
+        if (issues.stream().anyMatch(issue -> issue.getSeverity() == Severity.ERROR)) {
+            return Severity.ERROR;
         }
-    }
-
-    private void calculateBatchTotals() {
-        Set<String> distinctInvoiceIds = new HashSet<>(validationBatch.getListOfInvoiceIds());
-
-        Set<String> invoiceIdsWithRealIssues = issues.stream()
-                .filter(issue -> !isDuplicateIssue(issue))
-                .map(this::invoiceId)
-                .filter(distinctInvoiceIds::contains)
-                .collect(Collectors.toSet());
-
-        totalInvoices = distinctInvoiceIds.size();
-        invoicesWithIssues = invoiceIdsWithRealIssues.size();
-        validInvoices = totalInvoices - invoicesWithIssues;
-    }
-
-    private boolean isDuplicateIssue(ValidationIssue issue) {
-        return DuplicateIssueMessages.RULE_DUPLICATE_IN_BATCH.equals(issue.getRuleKey())
-                || DuplicateIssueMessages.RULE_DUPLICATE_CROSS_BATCH.equals(issue.getRuleKey());
-    }
-
-    private String invoiceId(ValidationIssue issue) {
-        return issue.getSellerTaxId() + "|" + issue.getInvoiceNumber();
+        if (issues.stream().anyMatch(issue -> issue.getSeverity() == Severity.WARNING)) {
+            return Severity.WARNING;
+        }
+        return Severity.OK;
     }
 }

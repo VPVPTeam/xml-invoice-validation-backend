@@ -5,8 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public final class DuplicateIssueMessages {
-    public static final String RULE_DUPLICATE_IN_BATCH = "DUPLICATE_IN_BATCH";
-    public static final String RULE_DUPLICATE_CROSS_BATCH = "DUPLICATE_CROSS_BATCH";
 
     private DuplicateIssueMessages() {}
 

@@ -1,51 +1,46 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.Severity;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
- * Output of technical validation step.
- * Contains canonical invoice (if mapping succeeded)
- * and list of technical issues found during validation.
+ * Output of the technical validation step.
+ * Immutable: either a canonical invoice (mapping succeeded) or a list of technical issues.
  */
 @Getter
-@Setter
-@NoArgsConstructor
 public final class TechnicalValidationOutput {
-    private CanonicalInvoice canonicalInvoice;
-    private List<ValidationIssue> issues = new ArrayList<>();
-    private String sellerTaxId;
-    private String invoiceNumber;
+    private final InvoiceId invoiceId;
+    private final CanonicalInvoice canonicalInvoice;
+    private final List<ValidationIssue> issues;
 
-    private TechnicalValidationOutput(CanonicalInvoice canonicalInvoice, List<ValidationIssue> issues) {
+    private TechnicalValidationOutput(InvoiceId invoiceId,
+                                      CanonicalInvoice canonicalInvoice,
+                                      List<ValidationIssue> issues) {
+        this.invoiceId = requireNonNull(invoiceId, "invoiceId must not be null");
         this.canonicalInvoice = canonicalInvoice;
-        this.issues = Objects.requireNonNullElse(issues, new ArrayList<>());
+        this.issues = List.copyOf(requireNonNull(issues, "issues must not be null"));
     }
 
-    public static TechnicalValidationOutput success(CanonicalInvoice canonicalInvoice) {
-        return new TechnicalValidationOutput(canonicalInvoice, List.of());
+    public static TechnicalValidationOutput success(InvoiceId invoiceId, CanonicalInvoice canonicalInvoice) {
+        return new TechnicalValidationOutput(
+                invoiceId,
+                requireNonNull(canonicalInvoice, "canonicalInvoice must not be null"),
+                List.of()
+        );
     }
 
-    public static TechnicalValidationOutput failure(List<ValidationIssue> issues) {
-
-        return new TechnicalValidationOutput(null, issues);
+    public static TechnicalValidationOutput failure(InvoiceId invoiceId, List<ValidationIssue> issues) {
+        return new TechnicalValidationOutput(invoiceId, null, issues);
     }
 
     public boolean hasErrors() {
-        return issues != null && issues
-                                    .stream()
-                                    .anyMatch(i -> i.getSeverity() == Severity.ERROR);
-    }
-
-    public boolean isValid() {
-        return canonicalInvoice != null && !hasErrors();
+        return issues.stream().anyMatch(issue -> issue.getSeverity() == Severity.ERROR);
     }
 }

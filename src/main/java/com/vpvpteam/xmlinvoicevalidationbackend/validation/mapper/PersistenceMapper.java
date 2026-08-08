@@ -8,15 +8,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public final class ValidationPersistenceMapper {
+public final class PersistenceMapper {
     // Batch
     public ValidationBatch toModel(ValidationBatchEntity batchEntity) {
-        ValidationBatch batch = new ValidationBatch(batchEntity.getBatchId(), batchEntity.getCreatedAt());
-
-        batch.setListOfVendorIds(new ArrayList<>(batchEntity.getVendorIds()));
-        batch.setListOfInvoiceIds(new ArrayList<>(batchEntity.getInvoiceIds()));
-
-        return batch;
+        return ValidationBatch.restored(
+                batchEntity.getBatchId(),
+                batchEntity.getCreatedAt(),
+                new ArrayList<>(batchEntity.getVendorIds()),
+                new ArrayList<>(batchEntity.getInvoiceIds())
+        );
     }
 
     public ValidationBatchEntity toEntity(ValidationBatch batchModel) {
@@ -33,16 +33,20 @@ public final class ValidationPersistenceMapper {
     // Output
     public ValidationOutput toModel(ValidationOutputEntity outputEntity) {
         ValidationBatch batch = toModel(outputEntity.getValidationBatch());
-        ValidationOutput output = new ValidationOutput(batch);
 
-        output.setStatus(outputEntity.getStatus());
-        output.setTotalInvoices(outputEntity.getTotalInvoices());
-        output.setValidInvoices(outputEntity.getValidInvoices());
-        output.setInvoicesWithIssues(outputEntity.getInvoicesWithIssues());
-        output.setDuplicateInvoices(outputEntity.getDuplicateInvoices());
-        output.setIssues(toModel(outputEntity.getIssues()));
+        BatchTotals totals = new BatchTotals(
+                outputEntity.getTotalInvoices(),
+                outputEntity.getValidInvoices(),
+                outputEntity.getInvoicesWithIssues(),
+                outputEntity.getDuplicateInvoices()
+        );
 
-        return output;
+        return ValidationOutput.restored(
+                batch,
+                outputEntity.getStatus(),
+                toModel(outputEntity.getIssues()),
+                totals
+        );
     }
 
     public ValidationOutputEntity toEntity(ValidationOutput outputModel, ValidationBatchEntity batchEntity) {
@@ -77,13 +81,13 @@ public final class ValidationPersistenceMapper {
         return issue;
     }
 
-    private List<ValidationIssue> toModel(List<ValidationIssueEntity> IssueEntities) {
-        if (IssueEntities == null) {
+    private List<ValidationIssue> toModel(List<ValidationIssueEntity> issueEntities) {
+        if (issueEntities == null) {
             return new ArrayList<>();
         }
 
         List<ValidationIssue> result = new ArrayList<>();
-        for (ValidationIssueEntity issueEntity : IssueEntities) {
+        for (ValidationIssueEntity issueEntity : issueEntities) {
             result.add(toModel(issueEntity));
         }
 
@@ -146,6 +150,7 @@ public final class ValidationPersistenceMapper {
 
         return rule;
     }
+
     public BusinessRuleEntity toEntity(BusinessRule model, VendorEntity vendorEntity) {
         BusinessRuleEntity entity = new BusinessRuleEntity();
 
