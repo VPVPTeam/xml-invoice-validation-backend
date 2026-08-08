@@ -8,7 +8,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssu
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.RuleKeys;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.TechnicalIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
@@ -48,14 +47,13 @@ public final class ValidationService {
         ensureBatchIsNotEmpty(xmlFilesData);
 
         FormatProcessor processor = resolveProcessor(format);
-        ValidationBatch batch = new ValidationBatch();
         BatchAccumulator accumulator = new BatchAccumulator();
 
         for (XmlFileData xmlFileData : xmlFilesData) {
             validateFile(xmlFileData, processor, accumulator);
         }
 
-        ValidationOutput output = accumulator.toOutput(batch);
+        ValidationOutput output = accumulator.toOutput();
         persistenceService.save(output);
 
         return output;

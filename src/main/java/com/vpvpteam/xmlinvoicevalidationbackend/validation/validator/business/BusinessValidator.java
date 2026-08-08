@@ -1,6 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.canonical.CanonicalInvoice;
+import com.vpvpteam.xmlinvoicevalidationbackend.canonical.InvoiceHeader;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFieldPathException;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.BusinessIssueMessages;
@@ -21,22 +22,18 @@ public final class BusinessValidator {
     private final OperatorEvaluator operatorEvaluator;
 
     public BusinessValidationOutput validate(CanonicalInvoice invoice, String fileName) {
-        List<ValidationIssue> issues = new ArrayList<>();
-
-        InvoiceId invoiceId = new InvoiceId(invoice.getHeader().getSeller().getTaxId(), invoice.getHeader().getInvoiceNumber());
+        InvoiceHeader header = invoice.getHeader();
+        InvoiceId invoiceId = new InvoiceId(header.getSeller().getTaxId(), header.getInvoiceNumber());
 
         List<BusinessRuleEntity> rules = businessRuleRepository.findByVendor_TaxId(invoiceId.sellerTaxId());
-
-        if (rules.isEmpty()) {
-            return BusinessValidationOutput.of(issues);
-        }
+        List<ValidationIssue> issues = new ArrayList<>();
 
         for (BusinessRuleEntity rule : rules) {
             String actualValue;
 
             try {
                 actualValue = fieldValueExtractor.extract(invoice, rule.getFieldPath());
-            } catch (UnsupportedFieldPathException e) {
+            } catch (UnsupportedFieldPathException ex) {
                 issues.add(ValidationIssue.businessWarning(
                         fileName,
                         invoiceId,
@@ -54,20 +51,18 @@ public final class BusinessValidator {
             );
 
             if (!passed) {
-                String message = BusinessIssueMessages.ruleViolation(
-                        rule.getRuleKey(),
-                        rule.getFieldPath(),
-                        rule.getOperator(),
-                        rule.getExpectedValue(),
-                        actualValue
-                );
-
                 issues.add(ValidationIssue.businessWarning(
                         fileName,
                         invoiceId,
                         rule.getRuleKey(),
                         rule.getFieldPath(),
-                        message
+                        BusinessIssueMessages.ruleViolation(
+                                rule.getRuleKey(),
+                                rule.getFieldPath(),
+                                rule.getOperator(),
+                                rule.getExpectedValue(),
+                                actualValue
+                        )
                 ));
             }
         }

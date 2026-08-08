@@ -44,9 +44,11 @@ final class BatchAccumulator {
         duplicateInvoices++;
     }
 
-    ValidationOutput toOutput(ValidationBatch batch) {
-        batch.setListOfVendorIds(new ArrayList<>(vendorIds));
-        batch.setListOfInvoiceIds(new ArrayList<>(invoiceIds));
+    ValidationOutput toOutput() {
+        ValidationBatch batch = ValidationBatch.created(
+                new ArrayList<>(vendorIds),
+                new ArrayList<>(invoiceIds)
+        );
 
         return ValidationOutput.of(batch, issues, duplicateInvoices);
     }

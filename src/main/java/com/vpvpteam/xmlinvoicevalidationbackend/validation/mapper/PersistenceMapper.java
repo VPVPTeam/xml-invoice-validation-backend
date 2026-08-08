@@ -11,12 +11,12 @@ import java.util.List;
 public final class PersistenceMapper {
     // Batch
     public ValidationBatch toModel(ValidationBatchEntity batchEntity) {
-        ValidationBatch batch = new ValidationBatch(batchEntity.getBatchId(), batchEntity.getCreatedAt());
-
-        batch.setListOfVendorIds(new ArrayList<>(batchEntity.getVendorIds()));
-        batch.setListOfInvoiceIds(new ArrayList<>(batchEntity.getInvoiceIds()));
-
-        return batch;
+        return ValidationBatch.restored(
+                batchEntity.getBatchId(),
+                batchEntity.getCreatedAt(),
+                new ArrayList<>(batchEntity.getVendorIds()),
+                new ArrayList<>(batchEntity.getInvoiceIds())
+        );
     }
 
     public ValidationBatchEntity toEntity(ValidationBatch batchModel) {
@@ -81,13 +81,13 @@ public final class PersistenceMapper {
         return issue;
     }
 
-    private List<ValidationIssue> toModel(List<ValidationIssueEntity> IssueEntities) {
-        if (IssueEntities == null) {
+    private List<ValidationIssue> toModel(List<ValidationIssueEntity> issueEntities) {
+        if (issueEntities == null) {
             return new ArrayList<>();
         }
 
         List<ValidationIssue> result = new ArrayList<>();
-        for (ValidationIssueEntity issueEntity : IssueEntities) {
+        for (ValidationIssueEntity issueEntity : issueEntities) {
             result.add(toModel(issueEntity));
         }
 
