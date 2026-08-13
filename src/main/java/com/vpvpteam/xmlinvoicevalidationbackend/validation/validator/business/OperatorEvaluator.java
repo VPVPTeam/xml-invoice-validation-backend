@@ -6,16 +6,20 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.Locale;
 
+/**
+ * Compares an actual field value against a rule's expected value.
+ * Never throws: any unusable input results in false.
+ */
 @Component
 public final class OperatorEvaluator {
     private static final String BETWEEN_DELIMITER = ";";
 
     public boolean evaluate(String actualValue, String expectedValue, RuleOperator operator) {
-        if (actualValue == null) {
+        if (actualValue == null || expectedValue == null) {
             return false;
         }
 
@@ -32,6 +36,10 @@ public final class OperatorEvaluator {
     }
 
     public boolean isExpectedValueValid(RuleOperator operator, String expectedValue) {
+        if (expectedValue == null) {
+            return false;
+        }
+
         return switch (operator) {
             case GREATER_THAN, LESS_THAN -> tryParseBigDecimal(expectedValue).isPresent();
             case BETWEEN -> isValidBetweenRange(expectedValue);
@@ -80,9 +88,13 @@ public final class OperatorEvaluator {
     }
 
     private Optional<BigDecimal> tryParseBigDecimal(String value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+
         try {
             return Optional.of(new BigDecimal(value));
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException ex) {
             return Optional.empty();
         }
     }
@@ -99,9 +111,9 @@ public final class OperatorEvaluator {
                 .orElse(false);
     }
 
-    private record NumericRange(BigDecimal min, BigDecimal max) {}
-
     private boolean containsIgnoreCase(String actual, String expected) {
         return actual.toLowerCase(Locale.ROOT).contains(expected.toLowerCase(Locale.ROOT));
     }
+
+    private record NumericRange(BigDecimal min, BigDecimal max) {}
 }
