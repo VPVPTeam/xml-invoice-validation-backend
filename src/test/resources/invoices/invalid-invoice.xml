@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <Nazwa>Test Seller Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Testowa 1, 00-000 Testowo</AdresL1>
+        </Adres>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>1000000002</NIP>
+            <Nazwa>Test Buyer Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Przykladowa 2, 00-000 Testowo</AdresL1>
+        </Adres>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2025-01-01</P_1>
+        <P_2>38294723948</P_2>
+        <P_13_1>1000.00</P_13_1>
+        <P_14_1>230.00</P_14_1>
+        <P_15>1230.00</P_15>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_7>Test product</P_7>
+            <P_8A>szt.</P_8A>
+            <P_8B>1</P_8B>
+            <P_9A>1000.00</P_9A>
+            <P_11>1000.00</P_11>
+        </FaWiersz>
+    </Fa>
+</Faktura>
