@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KsefTechnicalValidatorTest {
 
-    private static final String FILE_NAME = "Goodyear.xml";
+    private static final String FILE_NAME = "sample-invoice.xml";
     private static final String SELLER_TAX_ID = "5211146938";
     private static final String INVOICE_NUMBER = "5860135336";
 
@@ -168,8 +168,8 @@ class KsefTechnicalValidatorTest {
     private static KsefInvoiceXmlDto validDto() {
         KsefInvoiceXmlDto dto = new KsefInvoiceXmlDto();
 
-        dto.setSeller(party(SELLER_TAX_ID, "Goodyear Polska Sp. z o.o."));
-        dto.setBuyer(party("7390203825", "Michelin Polska S.A."));
+        dto.setSeller(party(SELLER_TAX_ID, "Vendor A Sp. z o.o."));
+        dto.setBuyer(party("7390203825", "Vendor B Sp. z o.o."));
         dto.setInvoiceBody(invoiceBody());
 
         return dto;
@@ -182,7 +182,7 @@ class KsefTechnicalValidatorTest {
 
         KsefInvoiceXmlDto.Address address = new KsefInvoiceXmlDto.Address();
         address.setCountryCode("PL");
-        address.setAddressLine1("ul. Krakowska 1");
+        address.setAddressLine1("ul. Testowa 1");
 
         KsefInvoiceXmlDto.Party party = new KsefInvoiceXmlDto.Party();
         party.setIdentificationData(identificationData);
@@ -209,7 +209,7 @@ class KsefTechnicalValidatorTest {
         KsefInvoiceXmlDto.InvoiceLine line = new KsefInvoiceXmlDto.InvoiceLine();
 
         line.setLineNumber(1);
-        line.setProductName("Opona 205/55 R16");
+        line.setProductName("Test product");
         line.setUnitOfMeasure("szt.");
         line.setQuantity(new BigDecimal("4"));
         line.setUnitNetPrice(new BigDecimal("650.63"));

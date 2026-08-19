@@ -9,9 +9,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BatchTotalsTest {
 
-    private static final InvoiceId GOODYEAR = new InvoiceId("5211146938", "5860135336");
-    private static final InvoiceId MICHELIN = new InvoiceId("7390203825", "VD16004393");
-    private static final InvoiceId SHELL = new InvoiceId("5261009190", "9573462586");
+    private static final InvoiceId INVOICE_A = new InvoiceId("1111111111", "INV-A");
+    private static final InvoiceId INVOICE_B = new InvoiceId("2222222222", "INV-B");
+    private static final InvoiceId INVOICE_C = new InvoiceId("3333333333", "INV-C");
 
     @Test
     void compute_withEmptyBatch_returnsZeros() {
@@ -23,7 +23,7 @@ class BatchTotalsTest {
     @Test
     void compute_withCleanInvoice_countsItAsValid() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
+                List.of(INVOICE_A.value()),
                 List.of(),
                 0
         );
@@ -34,8 +34,8 @@ class BatchTotalsTest {
     @Test
     void compute_withTechnicalIssue_countsInvoiceAsFaulty() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
-                List.of(technicalIssue(GOODYEAR)),
+                List.of(INVOICE_A.value()),
+                List.of(technicalIssue(INVOICE_A)),
                 0
         );
 
@@ -45,8 +45,8 @@ class BatchTotalsTest {
     @Test
     void compute_withSeveralIssuesOnSameInvoice_countsInvoiceOnce() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
-                List.of(technicalIssue(GOODYEAR), technicalIssue(GOODYEAR), businessIssue(GOODYEAR)),
+                List.of(INVOICE_A.value()),
+                List.of(technicalIssue(INVOICE_A), technicalIssue(INVOICE_A), businessIssue(INVOICE_A)),
                 0
         );
 
@@ -56,8 +56,8 @@ class BatchTotalsTest {
     @Test
     void compute_withDuplicateInBatch_keepsInvoiceValid() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
-                List.of(duplicateIssue(GOODYEAR, RuleKeys.DUPLICATE_IN_BATCH)),
+                List.of(INVOICE_A.value()),
+                List.of(duplicateIssue(INVOICE_A, RuleKeys.DUPLICATE_IN_BATCH)),
                 1
         );
 
@@ -67,8 +67,8 @@ class BatchTotalsTest {
     @Test
     void compute_withDuplicateFromPreviousBatch_keepsInvoiceValid() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
-                List.of(duplicateIssue(GOODYEAR, RuleKeys.DUPLICATE_CROSS_BATCH)),
+                List.of(INVOICE_A.value()),
+                List.of(duplicateIssue(INVOICE_A, RuleKeys.DUPLICATE_CROSS_BATCH)),
                 1
         );
 
@@ -78,8 +78,8 @@ class BatchTotalsTest {
     @Test
     void compute_withDuplicateAndRealIssueOnSameInvoice_countsInvoiceAsFaulty() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
-                List.of(duplicateIssue(GOODYEAR, RuleKeys.DUPLICATE_CROSS_BATCH), technicalIssue(GOODYEAR)),
+                List.of(INVOICE_A.value()),
+                List.of(duplicateIssue(INVOICE_A, RuleKeys.DUPLICATE_CROSS_BATCH), technicalIssue(INVOICE_A)),
                 1
         );
 
@@ -89,7 +89,7 @@ class BatchTotalsTest {
     @Test
     void compute_withIssueOnUnknownInvoice_ignoresIt() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value()),
+                List.of(INVOICE_A.value()),
                 List.of(technicalIssue(InvoiceId.NONE)),
                 0
         );
@@ -100,7 +100,7 @@ class BatchTotalsTest {
     @Test
     void compute_withRepeatedInvoiceIds_countsEachInvoiceOnce() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value(), GOODYEAR.value(), MICHELIN.value()),
+                List.of(INVOICE_A.value(), INVOICE_A.value(), INVOICE_B.value()),
                 List.of(),
                 0
         );
@@ -111,11 +111,11 @@ class BatchTotalsTest {
     @Test
     void compute_withMixedBatch_countsEachAxisSeparately() {
         BatchTotals totals = BatchTotals.compute(
-                List.of(GOODYEAR.value(), MICHELIN.value(), SHELL.value()),
+                List.of(INVOICE_A.value(), INVOICE_B.value(), INVOICE_C.value()),
                 List.of(
-                        technicalIssue(MICHELIN),
-                        duplicateIssue(GOODYEAR, RuleKeys.DUPLICATE_IN_BATCH),
-                        businessIssue(SHELL)
+                        technicalIssue(INVOICE_B),
+                        duplicateIssue(INVOICE_A, RuleKeys.DUPLICATE_IN_BATCH),
+                        businessIssue(INVOICE_C)
                 ),
                 1
         );

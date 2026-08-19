@@ -32,18 +32,18 @@ class XmlFileDataReaderTest {
     @Test
     void read_withSeveralFiles_keepsOrderAndNames() {
         List<XmlFileData> result = XmlFileDataReader.read(List.of(
-                xmlFile("Goodyear.xml"),
-                xmlFile("Michelin.xml")
+                xmlFile("first.xml"),
+                xmlFile("second.xml")
         ));
 
         assertThat(result)
                 .extracting(XmlFileData::fileName)
-                .containsExactly("Goodyear.xml", "Michelin.xml");
+                .containsExactly("first.xml", "second.xml");
     }
 
     @Test
     void read_withValidFile_keepsContent() throws IOException {
-        List<XmlFileData> result = XmlFileDataReader.read(List.of(xmlFile("Goodyear.xml")));
+        List<XmlFileData> result = XmlFileDataReader.read(List.of(xmlFile("sample.xml")));
 
         byte[] content = result.get(0).xmlInputStream().readAllBytes();
 
@@ -72,7 +72,7 @@ class XmlFileDataReaderTest {
 
     @Test
     void read_withNullFileInList_throwsBadRequest() {
-        List<MultipartFile> filesWithNull = new ArrayList<>(Arrays.asList(xmlFile("Goodyear.xml"), null));
+        List<MultipartFile> filesWithNull = new ArrayList<>(Arrays.asList(xmlFile("sample.xml"), null));
 
         assertThatThrownBy(() -> XmlFileDataReader.read(filesWithNull))
                 .isInstanceOf(ApiBadRequestException.class)

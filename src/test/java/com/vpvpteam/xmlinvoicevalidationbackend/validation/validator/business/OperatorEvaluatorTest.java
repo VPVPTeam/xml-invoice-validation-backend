@@ -145,9 +145,9 @@ class OperatorEvaluatorTest {
 
     @ParameterizedTest
     @CsvSource({
-            "Goodyear Polska, Polska, true",
-            "Goodyear Polska, polska, true",
-            "Goodyear Polska, Michelin, false"
+            "Vendor Alpha, Alpha, true",
+            "Vendor Alpha, alpha, true",
+            "Vendor Alpha, Bravo, false"
     })
     void evaluate_contains_checksSubstringIgnoringCase(String actualValue, String expectedValue, boolean expected) {
         assertThat(evaluator.evaluate(actualValue, expectedValue, RuleOperator.CONTAINS)).isEqualTo(expected);
