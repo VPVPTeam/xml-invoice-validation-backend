@@ -23,7 +23,7 @@ class PersistenceMapperTest {
 
     private static final String BATCH_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
     private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2025-03-14T10:15:30Z");
-    private static final InvoiceId GOODYEAR = new InvoiceId("5211146938", "5860135336");
+    private static final InvoiceId INVOICE = new InvoiceId("5211146938", "5860135336");
 
     private final PersistenceMapper mapper = new PersistenceMapper();
 
@@ -32,14 +32,14 @@ class PersistenceMapperTest {
     @Test
     void toEntity_batch_copiesAllFields() {
         ValidationBatch batch = ValidationBatch.restored(
-                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(GOODYEAR.value()));
+                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(INVOICE.value()));
 
         ValidationBatchEntity entity = mapper.toEntity(batch);
 
         assertThat(entity.getBatchId()).isEqualTo(BATCH_ID);
         assertThat(entity.getCreatedAt()).isEqualTo(CREATED_AT);
         assertThat(entity.getVendorIds()).containsExactly("5211146938");
-        assertThat(entity.getInvoiceIds()).containsExactly(GOODYEAR.value());
+        assertThat(entity.getInvoiceIds()).containsExactly(INVOICE.value());
     }
 
     @Test
@@ -51,7 +51,7 @@ class PersistenceMapperTest {
         assertThat(batch.getBatchId()).isEqualTo(BATCH_ID);
         assertThat(batch.getCreatedAt()).isEqualTo(CREATED_AT);
         assertThat(batch.getListOfVendorIds()).containsExactly("5211146938");
-        assertThat(batch.getListOfInvoiceIds()).containsExactly(GOODYEAR.value());
+        assertThat(batch.getListOfInvoiceIds()).containsExactly(INVOICE.value());
     }
 
     // Output
@@ -59,7 +59,7 @@ class PersistenceMapperTest {
     @Test
     void toEntity_output_copiesCountersStatusAndIssues() {
         ValidationBatch batch = ValidationBatch.restored(
-                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(GOODYEAR.value()));
+                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(INVOICE.value()));
         ValidationOutput output = ValidationOutput.of(batch, List.of(technicalIssue()), 0);
 
         ValidationOutputEntity entity = mapper.toEntity(output, batchEntity());
@@ -75,7 +75,7 @@ class PersistenceMapperTest {
     @Test
     void toEntity_output_linksIssuesBackToOutput() {
         ValidationBatch batch = ValidationBatch.restored(
-                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(GOODYEAR.value()));
+                BATCH_ID, CREATED_AT, List.of("5211146938"), List.of(INVOICE.value()));
         ValidationOutput output = ValidationOutput.of(batch, List.of(technicalIssue()), 0);
 
         ValidationOutputEntity entity = mapper.toEntity(output, batchEntity());
@@ -113,16 +113,16 @@ class PersistenceMapperTest {
     void toEntity_issue_copiesAllPersistedFields() {
         ValidationOutputEntity entity = mapper.toEntity(
                 ValidationOutput.of(
-                        ValidationBatch.restored(BATCH_ID, CREATED_AT, List.of(), List.of(GOODYEAR.value())),
+                        ValidationBatch.restored(BATCH_ID, CREATED_AT, List.of(), List.of(INVOICE.value())),
                         List.of(technicalIssue()),
                         0),
                 batchEntity());
 
         ValidationIssueEntity issueEntity = entity.getIssues().get(0);
 
-        assertThat(issueEntity.getFileName()).isEqualTo("Goodyear.xml");
-        assertThat(issueEntity.getSellerTaxId()).isEqualTo(GOODYEAR.sellerTaxId());
-        assertThat(issueEntity.getInvoiceNumber()).isEqualTo(GOODYEAR.invoiceNumber());
+        assertThat(issueEntity.getFileName()).isEqualTo("sample-invoice.xml");
+        assertThat(issueEntity.getSellerTaxId()).isEqualTo(INVOICE.sellerTaxId());
+        assertThat(issueEntity.getInvoiceNumber()).isEqualTo(INVOICE.invoiceNumber());
         assertThat(issueEntity.getStage()).isEqualTo(ValidationStage.TECHNICAL);
         assertThat(issueEntity.getSeverity()).isEqualTo(Severity.ERROR);
         assertThat(issueEntity.getRuleKey()).isEqualTo(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
@@ -135,9 +135,9 @@ class PersistenceMapperTest {
 
         ValidationIssue issue = mapper.toModel(entity);
 
-        assertThat(issue.getFileName()).isEqualTo("Goodyear.xml");
-        assertThat(issue.getSellerTaxId()).isEqualTo(GOODYEAR.sellerTaxId());
-        assertThat(issue.getInvoiceNumber()).isEqualTo(GOODYEAR.invoiceNumber());
+        assertThat(issue.getFileName()).isEqualTo("sample-invoice.xml");
+        assertThat(issue.getSellerTaxId()).isEqualTo(INVOICE.sellerTaxId());
+        assertThat(issue.getInvoiceNumber()).isEqualTo(INVOICE.invoiceNumber());
         assertThat(issue.getStage()).isEqualTo(ValidationStage.TECHNICAL);
         assertThat(issue.getSeverity()).isEqualTo(Severity.ERROR);
         assertThat(issue.getRuleKey()).isEqualTo(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
@@ -157,12 +157,12 @@ class PersistenceMapperTest {
     void toModel_vendor_copiesAllFields() {
         VendorEntity entity = new VendorEntity();
         entity.setTaxId("5211146938");
-        entity.setName("Goodyear Polska Sp. z o.o.");
+        entity.setName("Vendor A Sp. z o.o.");
 
         Vendor vendor = mapper.toModel(entity);
 
         assertThat(vendor.getTaxId()).isEqualTo("5211146938");
-        assertThat(vendor.getName()).isEqualTo("Goodyear Polska Sp. z o.o.");
+        assertThat(vendor.getName()).isEqualTo("Vendor A Sp. z o.o.");
     }
 
     @Test
@@ -170,19 +170,19 @@ class PersistenceMapperTest {
         Vendor vendor = new Vendor();
         vendor.setId(42L);
         vendor.setTaxId("5211146938");
-        vendor.setName("Goodyear Polska Sp. z o.o.");
+        vendor.setName("Vendor A Sp. z o.o.");
 
         VendorEntity entity = mapper.toEntity(vendor);
 
         assertThat(entity.getId()).isNull();
         assertThat(entity.getTaxId()).isEqualTo("5211146938");
-        assertThat(entity.getName()).isEqualTo("Goodyear Polska Sp. z o.o.");
+        assertThat(entity.getName()).isEqualTo("Vendor A Sp. z o.o.");
     }
 
     private static ValidationIssue technicalIssue() {
         return ValidationIssue.technicalError(
-                "Goodyear.xml",
-                GOODYEAR,
+                "sample-invoice.xml",
+                INVOICE,
                 RuleKeys.TECH_MISSING_REQUIRED_FIELD,
                 "Fa.P_2",
                 "Required field 'Fa.P_2' is missing or invalid."
@@ -192,9 +192,9 @@ class PersistenceMapperTest {
     private static ValidationIssueEntity issueEntity() {
         ValidationIssueEntity entity = new ValidationIssueEntity();
 
-        entity.setFileName("Goodyear.xml");
-        entity.setSellerTaxId(GOODYEAR.sellerTaxId());
-        entity.setInvoiceNumber(GOODYEAR.invoiceNumber());
+        entity.setFileName("sample-invoice.xml");
+        entity.setSellerTaxId(INVOICE.sellerTaxId());
+        entity.setInvoiceNumber(INVOICE.invoiceNumber());
         entity.setStage(ValidationStage.TECHNICAL);
         entity.setSeverity(Severity.ERROR);
         entity.setRuleKey(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
@@ -209,7 +209,7 @@ class PersistenceMapperTest {
         entity.setBatchId(BATCH_ID);
         entity.setCreatedAt(CREATED_AT);
         entity.setVendorIds(List.of("5211146938"));
-        entity.setInvoiceIds(List.of(GOODYEAR.value()));
+        entity.setInvoiceIds(List.of(INVOICE.value()));
 
         return entity;
     }

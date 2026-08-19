@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>5211146938</NIP>
+            <Nazwa>Goodyear Polska Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Testowa 1, 00-000 Testowo</AdresL1>
+        </Adres>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>1000000001</NIP>
+            <Nazwa>Test Buyer Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Przykladowa 2, 00-000 Testowo</AdresL1>
+        </Adres>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2025-01-01</P_1>
+        <P_2>5860135336</P_2>
+        <P_13_1>2602.52</P_13_1>
+        <P_14_1>598.58</P_14_1>
+        <P_15>3201.10</P_15>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_7>Test product</P_7>
+            <P_8A>szt.</P_8A>
+            <P_8B>4</P_8B>
+            <P_9A>650.63</P_9A>
+            <P_11>2602.52</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
+    </Fa>
+</Faktura>

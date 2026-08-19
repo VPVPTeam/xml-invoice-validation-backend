@@ -84,11 +84,11 @@ class FieldValueExtractorTest {
     private static CanonicalInvoice invoice() {
         Address sellerAddress = new Address();
         sellerAddress.setCountryCode("PL");
-        sellerAddress.setAddressLine1("ul. Krakowska 1");
+        sellerAddress.setAddressLine1("ul. Testowa 1");
 
         Party seller = new Party();
         seller.setTaxId("5211146938");
-        seller.setName("Goodyear Polska Sp. z o.o.");
+        seller.setName("Vendor A Sp. z o.o.");
         seller.setAddress(sellerAddress);
 
         InvoiceHeader header = new InvoiceHeader();
