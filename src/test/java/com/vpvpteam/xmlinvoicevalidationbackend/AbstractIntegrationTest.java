@@ -74,7 +74,11 @@ public abstract class AbstractIntegrationTest {
 
     protected ResultActions authorizedGet(String url) throws Exception {
         return mockMvc.perform(get(url)
-                .header("Authorization", "Bearer " + adminToken()));
+                .header("Authorization", bearer(adminToken())));
+    }
+
+    protected String bearer(String token) {
+        return "Bearer " + token;
     }
 
     protected String adminToken() throws Exception {
