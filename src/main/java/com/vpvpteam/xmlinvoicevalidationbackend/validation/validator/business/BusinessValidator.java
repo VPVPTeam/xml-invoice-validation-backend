@@ -7,7 +7,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEn
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.BusinessIssueMessages;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.InvoiceId;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRuleRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,15 +16,13 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 public final class BusinessValidator {
-    private final BusinessRuleRepository businessRuleRepository;
     private final FieldValueExtractor fieldValueExtractor;
     private final OperatorEvaluator operatorEvaluator;
 
-    public BusinessValidationOutput validate(CanonicalInvoice invoice, String fileName) {
+    public BusinessValidationOutput validate(CanonicalInvoice invoice, String fileName, List<BusinessRuleEntity> rules) {
         InvoiceHeader header = invoice.getHeader();
         InvoiceId invoiceId = new InvoiceId(header.getSeller().getTaxId(), header.getInvoiceNumber());
 
-        List<BusinessRuleEntity> rules = businessRuleRepository.findByVendor_TaxId(invoiceId.sellerTaxId());
         List<ValidationIssue> issues = new ArrayList<>();
 
         for (BusinessRuleEntity rule : rules) {
