@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ValidationBatchRepository extends JpaRepository<ValidationBatchEntity, Long> {
     @Query("SELECT batch FROM ValidationBatchEntity batch " +
@@ -13,4 +14,6 @@ public interface ValidationBatchRepository extends JpaRepository<ValidationBatch
             "WHERE vendor = :vendorId " +
             "ORDER BY batch.createdAt DESC")
     List<ValidationBatchEntity> findBatchesByVendorId(@Param("vendorId") String vendorId);
+
+    Optional<ValidationBatchEntity> findByBatchId(String batchId);
 }
