@@ -1,9 +1,12 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.entity;
 
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.enums.BatchStatus;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,6 +34,13 @@ public class ValidationBatchEntity {
 
     @Column(name = "batch_id", nullable = false, unique = true, length = 36)
     private String batchId;
+
+    @Column(name = "format", nullable = false, length = 20)
+    private String format;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private BatchStatus status = BatchStatus.PENDING;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
