@@ -2,12 +2,14 @@ package com.vpvpteam.xmlinvoicevalidationbackend.validation.controller;
 
 import com.vpvpteam.xmlinvoicevalidationbackend.api.ListResponse;
 import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EntityNotFoundException;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationBatchEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.ValidationOutputEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.mapper.PersistenceMapper;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.*;
+import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.BatchSubmissionService;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationQueryService;
-import com.vpvpteam.xmlinvoicevalidationbackend.validation.service.ValidationService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/validation")
 public final class InvoiceValidationController {
-    private final ValidationService validationService;
+    private final BatchSubmissionService batchSubmissionService;
     private final ValidationQueryService queryService;
     private final PersistenceMapper persistenceMapper;
 
@@ -27,9 +29,18 @@ public final class InvoiceValidationController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ValidationOutput validateXmlInputs(@RequestParam("file") List<MultipartFile> files,
-                                              @RequestParam("format") String format) {
-        return validationService.validateBatch(XmlFileDataReader.read(files), format);
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public BatchStatusSummary validateXmlInputs(@RequestParam("file") List<MultipartFile> files,
+                                                @RequestParam("format") String format) {
+        return batchSubmissionService.submit(XmlFileDataReader.read(files), format);
+    }
+
+    @GetMapping("/batches/{batchId}/status")
+    public BatchStatusSummary getBatchStatus(@PathVariable String batchId) {
+        ValidationBatchEntity batchEntity = queryService.findBatchByBatchId(batchId)
+                .orElseThrow(() -> new EntityNotFoundException("Batch not found: " + batchId));
+
+        return persistenceMapper.toStatusSummary(batchEntity);
     }
 
     @GetMapping("/report/{batchId}")
