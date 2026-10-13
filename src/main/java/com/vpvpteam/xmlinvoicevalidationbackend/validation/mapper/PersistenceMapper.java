@@ -30,6 +30,25 @@ public final class PersistenceMapper {
         return batchEntity;
     }
 
+    public BatchStatusSummary toStatusSummary(ValidationBatchEntity batchEntity) {
+        return new BatchStatusSummary(
+                batchEntity.getBatchId(),
+                batchEntity.getStatus(),
+                batchEntity.getCreatedAt()
+        );
+    }
+
+    // BatchFile
+    public BatchFileEntity toEntity(XmlFileData xmlFileData, ValidationBatchEntity batchEntity) {
+        BatchFileEntity fileEntity = new BatchFileEntity();
+
+        fileEntity.setValidationBatch(batchEntity);
+        fileEntity.setFileName(xmlFileData.fileName());
+        fileEntity.setContent(xmlFileData.content());
+
+        return fileEntity;
+    }
+
     // Output
     public ValidationOutput toModel(ValidationOutputEntity outputEntity) {
         ValidationBatch batch = toModel(outputEntity.getValidationBatch());
