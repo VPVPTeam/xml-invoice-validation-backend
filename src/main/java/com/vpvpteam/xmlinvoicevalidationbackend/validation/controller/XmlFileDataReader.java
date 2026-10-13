@@ -6,7 +6,6 @@ import com.vpvpteam.xmlinvoicevalidationbackend.util.FieldCheck;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.XmlFileData;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +48,7 @@ final class XmlFileDataReader {
         }
 
         try {
-            return new XmlFileData(fileName, new ByteArrayInputStream(file.getBytes()));
+            return new XmlFileData(fileName, file.getBytes());
         } catch (IOException ex) {
             throw new ApiBadRequestException("Cannot read XML file: " + fileName
                     + ": " + ExceptionUtils.safeMessage(ex));
