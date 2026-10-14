@@ -27,6 +27,10 @@ public class ValidationQueryService {
         return outputRepository.findByValidationBatch_BatchId(batchId);
     }
 
+    public Optional<ValidationBatchEntity> findBatchByBatchId(String batchId) {
+        return batchRepository.findByBatchId(batchId);
+    }
+
     public List<ValidationBatchEntity> getBatchesByVendor(String vendorId) {
         return batchRepository.findBatchesByVendorId(vendorId);
     }
