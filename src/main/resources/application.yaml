@@ -15,11 +15,21 @@ spring:
       hibernate:
         show_sql: true
 
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 20MB
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        max.block.ms: 5000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 10000
     consumer:
       group-id: invoice-validation
       auto-offset-reset: earliest
