@@ -17,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class BatchStatusService {
     private final ValidationBatchRepository batchRepository;
 
+    @Transactional
+    public void markProcessing(String batchId) {
+        getBatchEntityOrThrow(batchId).setStatus(BatchStatus.PROCESSING);
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(String batchId) {
         getBatchEntityOrThrow(batchId).setStatus(BatchStatus.FAILED);
