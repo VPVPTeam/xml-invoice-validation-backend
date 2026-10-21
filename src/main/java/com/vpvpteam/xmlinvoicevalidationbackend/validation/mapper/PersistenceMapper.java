@@ -49,6 +49,10 @@ public final class PersistenceMapper {
         return fileEntity;
     }
 
+    public XmlFileData toModel(BatchFileEntity fileEntity) {
+        return new XmlFileData(fileEntity.getFileName(), fileEntity.getContent());
+    }
+
     // Output
     public ValidationOutput toModel(ValidationOutputEntity outputEntity) {
         ValidationBatch batch = toModel(outputEntity.getValidationBatch());
