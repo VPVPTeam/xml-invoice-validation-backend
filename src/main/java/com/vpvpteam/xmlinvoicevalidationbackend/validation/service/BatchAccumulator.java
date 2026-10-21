@@ -5,6 +5,7 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationBatch
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationIssue;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.model.ValidationOutput;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,8 +45,10 @@ final class BatchAccumulator {
         duplicateInvoices++;
     }
 
-    ValidationOutput toOutput() {
-        ValidationBatch batch = ValidationBatch.created(
+    ValidationOutput toOutput(String batchId, OffsetDateTime createdAt) {
+        ValidationBatch batch = ValidationBatch.restored(
+                batchId,
+                createdAt,
                 new ArrayList<>(vendorIds),
                 new ArrayList<>(invoiceIds)
         );
