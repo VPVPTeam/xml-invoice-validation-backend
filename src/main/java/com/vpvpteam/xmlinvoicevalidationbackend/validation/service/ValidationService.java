@@ -1,8 +1,7 @@
 package com.vpvpteam.xmlinvoicevalidationbackend.validation.service;
 
-import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.EmptyBatchException;
-import com.vpvpteam.xmlinvoicevalidationbackend.exceptions.UnsupportedFormatException;
 import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessor;
+import com.vpvpteam.xmlinvoicevalidationbackend.formats.FormatProcessorRegistry;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.dao.ValidationBatchDao;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.entity.BusinessRuleEntity;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.message.DuplicateIssueMessages;
@@ -16,44 +15,33 @@ import com.vpvpteam.xmlinvoicevalidationbackend.validation.repository.BusinessRu
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidationOutput;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.business.BusinessValidator;
 import com.vpvpteam.xmlinvoicevalidationbackend.validation.validator.technical.TechnicalValidationOutput;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Service that validates a batch of XML invoice/invoices.
+ * Validates the files of one stored batch and returns the result without persisting it.
  * Files are parsed and technically validated in parallel; the database is queried
  * in bulk; the final result is assembled sequentially.
  */
 @Service
+@AllArgsConstructor
 public final class ValidationService {
-    private final Map<String, FormatProcessor> processors;
+    private final FormatProcessorRegistry formatProcessorRegistry;
     private final BusinessValidator businessValidator;
-    private final ValidationPersistenceService persistenceService;
     private final ValidationBatchDao validationBatchDao;
     private final BusinessRuleRepository businessRuleRepository;
 
-    public ValidationService(List<FormatProcessor> processorList,
-                             BusinessValidator businessValidator,
-                             ValidationPersistenceService persistenceService,
-                             ValidationBatchDao validationBatchDao,
-                             BusinessRuleRepository businessRuleRepository) {
-        this.processors = processorList.stream()
-                .collect(Collectors.toMap(FormatProcessor::getFormatName, Function.identity()));
-        this.businessValidator = businessValidator;
-        this.persistenceService = persistenceService;
-        this.validationBatchDao = validationBatchDao;
-        this.businessRuleRepository = businessRuleRepository;
-    }
-
-    public ValidationOutput validateBatch(List<XmlFileData> xmlFilesData, String format) {
-        ensureBatchIsNotEmpty(xmlFilesData);
-        FormatProcessor processor = resolveProcessor(format);
+    public ValidationOutput validate(String batchId,
+                                     OffsetDateTime createdAt,
+                                     String format,
+                                     List<XmlFileData> xmlFilesData) {
+        FormatProcessor processor = formatProcessorRegistry.getProcessorOrThrow(format);
 
         // Phase 1: parse + technical validation of every file IN PARALLEL (pure CPU, no DB, no shared state).
         List<TechnicalResult> technicalResults = xmlFilesData.parallelStream()
@@ -70,27 +58,7 @@ public final class ValidationService {
             accumulate(result, crossBatchDuplicates, rulesByVendorTaxId, accumulator);
         }
 
-        ValidationOutput output = accumulator.toOutput();
-        persistenceService.save(output);
-
-        return output;
-    }
-
-    private void ensureBatchIsNotEmpty(List<XmlFileData> xmlFilesData) {
-        if (xmlFilesData == null || xmlFilesData.isEmpty()) {
-            throw new EmptyBatchException("Batch has no XML files to validate");
-        }
-    }
-
-    private FormatProcessor resolveProcessor(String format) {
-        FormatProcessor processor = processors.get(format);
-
-        if (processor == null) {
-            throw new UnsupportedFormatException("Unsupported format: " + format
-                    + ". Supported: " + processors.keySet());
-        }
-
-        return processor;
+        return accumulator.toOutput(batchId, createdAt);
     }
 
     private TechnicalResult parseAndValidateTechnically(XmlFileData xmlFileData, FormatProcessor processor) {
