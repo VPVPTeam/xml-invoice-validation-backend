@@ -13,9 +13,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.lifecycle.Startables;
+import org.testcontainers.utility.MountableFile;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,10 +36,19 @@ public abstract class AbstractIntegrationTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:17-alpine")
-                    .withInitScript("schema.sql");
+                    .withCopyFileToContainer(
+                            MountableFile.forHostPath("schema.sql"),
+                            "/docker-entrypoint-initdb.d/01-schema.sql");
+
+    static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0");
 
     static {
-        POSTGRES.start();
+        Startables.deepStart(POSTGRES, KAFKA).join();
+    }
+
+    @DynamicPropertySource
+    static void kafkaProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
     }
 
     @Autowired
@@ -61,6 +75,7 @@ public abstract class AbstractIntegrationTest {
                 TRUNCATE TABLE
                     validation_issue,
                     validation_output,
+                    batch_file,
                     batch_invoice,
                     batch_vendor,
                     validation_batch,
