@@ -88,6 +88,7 @@ CREATE TABLE validation_issue (
                                   stage          VARCHAR(20)  NOT NULL,
                                   rule_key       VARCHAR(100) NOT NULL,
                                   field_path     VARCHAR(100),
+                                  message        TEXT,
 
                                   CONSTRAINT fk_issue_output
                                       FOREIGN KEY (validation_output_id) REFERENCES validation_output (id)

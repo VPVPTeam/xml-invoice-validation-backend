@@ -53,4 +53,7 @@ public class ValidationIssueEntity {
 
     @Column(name = "field_path", length = 100)
     private String fieldPath;
+
+    @Column(name = "message", columnDefinition = "TEXT")
+    private String message;
 }
