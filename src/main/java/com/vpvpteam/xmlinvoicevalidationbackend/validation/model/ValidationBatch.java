@@ -4,13 +4,13 @@ import lombok.Getter;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 
 /**
  * Identity and contents of one validation batch.
- * Immutable: the id lists are fixed at the moment the batch is completed.
+ * The identity (batchId, createdAt) is assigned when the batch is submitted;
+ * the id lists are fixed once its validation is complete.
  */
 @Getter
 public final class ValidationBatch {
@@ -27,15 +27,6 @@ public final class ValidationBatch {
         this.createdAt = createdAt;
         this.listOfVendorIds = List.copyOf(requireNonNull(listOfVendorIds, "listOfVendorIds must not be null"));
         this.listOfInvoiceIds = List.copyOf(requireNonNull(listOfInvoiceIds, "listOfInvoiceIds must not be null"));
-    }
-
-    public static ValidationBatch created(List<String> listOfVendorIds, List<String> listOfInvoiceIds) {
-        return new ValidationBatch(
-                UUID.randomUUID().toString(),
-                OffsetDateTime.now(),
-                listOfVendorIds,
-                listOfInvoiceIds
-        );
     }
 
     public static ValidationBatch restored(String batchId,
