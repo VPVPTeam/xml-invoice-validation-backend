@@ -100,6 +100,7 @@ public final class PersistenceMapper {
         issue.setStage(issueEntity.getStage());
         issue.setRuleKey(issueEntity.getRuleKey());
         issue.setFieldPath(issueEntity.getFieldPath());
+        issue.setMessage(issueEntity.getMessage());
 
         return issue;
     }
@@ -133,6 +134,7 @@ public final class PersistenceMapper {
             issueEntity.setStage(issueModel.getStage());
             issueEntity.setRuleKey(issueModel.getRuleKey());
             issueEntity.setFieldPath(issueModel.getFieldPath());
+            issueEntity.setMessage(issueModel.getMessage());
             result.add(issueEntity);
         }
 
