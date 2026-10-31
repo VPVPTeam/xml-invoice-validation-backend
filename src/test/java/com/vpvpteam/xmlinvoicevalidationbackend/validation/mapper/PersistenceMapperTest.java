@@ -24,6 +24,7 @@ class PersistenceMapperTest {
     private static final String BATCH_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
     private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2025-03-14T10:15:30Z");
     private static final InvoiceId INVOICE = new InvoiceId("5211146938", "5860135336");
+    private static final String ISSUE_MESSAGE = "Required field 'Fa.P_2' is missing or invalid.";
 
     private final PersistenceMapper mapper = new PersistenceMapper();
 
@@ -127,6 +128,7 @@ class PersistenceMapperTest {
         assertThat(issueEntity.getSeverity()).isEqualTo(Severity.ERROR);
         assertThat(issueEntity.getRuleKey()).isEqualTo(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
         assertThat(issueEntity.getFieldPath()).isEqualTo("Fa.P_2");
+        assertThat(issueEntity.getMessage()).isEqualTo(ISSUE_MESSAGE);
     }
 
     @Test
@@ -142,13 +144,7 @@ class PersistenceMapperTest {
         assertThat(issue.getSeverity()).isEqualTo(Severity.ERROR);
         assertThat(issue.getRuleKey()).isEqualTo(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
         assertThat(issue.getFieldPath()).isEqualTo("Fa.P_2");
-    }
-
-    @Test
-    void toModel_issue_losesMessageBecauseItIsNotPersisted() {
-        ValidationIssue issue = mapper.toModel(issueEntity());
-
-        assertThat(issue.getMessage()).isNull();
+        assertThat(issue.getMessage()).isEqualTo(ISSUE_MESSAGE);
     }
 
     // Vendor
@@ -185,7 +181,7 @@ class PersistenceMapperTest {
                 INVOICE,
                 RuleKeys.TECH_MISSING_REQUIRED_FIELD,
                 "Fa.P_2",
-                "Required field 'Fa.P_2' is missing or invalid."
+                ISSUE_MESSAGE
         );
     }
 
@@ -199,6 +195,7 @@ class PersistenceMapperTest {
         entity.setSeverity(Severity.ERROR);
         entity.setRuleKey(RuleKeys.TECH_MISSING_REQUIRED_FIELD);
         entity.setFieldPath("Fa.P_2");
+        entity.setMessage(ISSUE_MESSAGE);
 
         return entity;
     }
