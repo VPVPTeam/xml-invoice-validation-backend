@@ -13,12 +13,17 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +32,10 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     private static final String KSEF_FORMAT = "KSEF";
     private static final String UNKNOWN_BATCH_ID = "00000000-0000-0000-0000-000000000000";
+
+    private static final Duration PROCESSING_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
+    private static final Set<String> FINISHED_STATUSES = Set.of("COMPLETED", "FAILED");
 
     private static final InvoiceFixture VALID_INVOICE = new InvoiceFixture(
             "valid-invoice.xml", "5211146938", "5860135336", "Vendor A Sp. z o.o.");
@@ -53,8 +62,22 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
     private BusinessRuleRepository businessRuleRepository;
 
     @Test
+    void validate_acceptsBatchAndReturnsPendingStatus() throws Exception {
+        String response = submit(VALID_INVOICE.fileName())
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.batchId").isNotEmpty())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        awaitCompleted(JsonPath.read(response, "$.batchId"));
+    }
+
+    @Test
     void validate_withValidInvoice_returnsReportWithoutIssues() throws Exception {
-        validate(VALID_INVOICE.fileName())
+        validateAndGetReport(VALID_INVOICE.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.issues").isEmpty())
@@ -80,7 +103,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void validate_withTechnicallyInvalidInvoice_returnsErrorWithTechnicalIssues() throws Exception {
-        validate(INVALID_INVOICE.fileName())
+        validateAndGetReport(INVALID_INVOICE.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.issues.length()").value(2))
@@ -104,7 +127,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
         VendorEntity vendor = createVendor(INVALID_INVOICE);
         createRule(vendor, "CURRENCY_MUST_BE_XXX", "totals.currencyCode", RuleOperator.EQUALS, "XXX");
 
-        validate(INVALID_INVOICE.fileName())
+        validateAndGetReport(INVALID_INVOICE.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.issues.length()").value(2))
@@ -117,7 +140,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
         createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
         createRule(vendor, "TOTALS_LESS_THAN", "totals.totalGross", RuleOperator.LESS_THAN, "1000");
 
-        validate(VALID_INVOICE.fileName())
+        validateAndGetReport(VALID_INVOICE.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("WARNING"))
                 .andExpect(jsonPath("$.issues.length()").value(1))
@@ -137,9 +160,9 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void validate_withInvoiceFromPreviousBatch_reportsCrossBatchDuplicate() throws Exception {
-        String firstBatchId = validateAndGetBatchId(VALID_INVOICE.fileName());
+        String firstBatchId = submitAndAwait(VALID_INVOICE.fileName());
 
-        validate(VALID_INVOICE.fileName())
+        validateAndGetReport(VALID_INVOICE.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("WARNING"))
                 .andExpect(jsonPath("$.issues.length()").value(1))
@@ -161,7 +184,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
         VendorEntity vendor = createVendor(VALID_INVOICE);
         createRule(vendor, "CURRENCY_MUST_BE_PLN", "totals.currencyCode", RuleOperator.EQUALS, "PLN");
 
-        validate(VALID_INVOICE.fileName(), DUPLICATE_INVOICE.fileName(), INVALID_INVOICE.fileName(),
+        validateAndGetReport(VALID_INVOICE.fileName(), DUPLICATE_INVOICE.fileName(), INVALID_INVOICE.fileName(),
                 VENDOR_B.fileName(), VENDOR_C.fileName(), VENDOR_D.fileName())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ERROR"))
@@ -194,7 +217,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void validate_withUnsupportedFormat_returnsBadRequest() throws Exception {
-        validateFiles("UNSUPPORTED_FORMAT", invoiceFile(VALID_INVOICE.fileName()))
+        submitFiles("UNSUPPORTED_FORMAT", invoiceFile(VALID_INVOICE.fileName()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -203,16 +226,18 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
         MockMultipartFile emptyFile =
                 new MockMultipartFile("file", "empty.xml", "application/xml", new byte[0]);
 
-        validateFiles(KSEF_FORMAT, emptyFile)
+        submitFiles(KSEF_FORMAT, emptyFile)
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void validate_withMalformedXml_reportsParseErrorIssue() throws Exception {
+    void validate_withMalformedXml_completesBatchWithParseErrorIssue() throws Exception {
         MockMultipartFile malformedFile = new MockMultipartFile("file", "broken.xml",
                 "application/xml", "this is not xml".getBytes(StandardCharsets.UTF_8));
 
-        validateFiles(KSEF_FORMAT, malformedFile)
+        String batchId = submitFilesAndAwait(malformedFile);
+
+        authorizedGet("/api/validation/report/" + batchId)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.issues.length()").value(1))
@@ -223,8 +248,26 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getBatchStatus_afterProcessing_returnsCompleted() throws Exception {
+        String batchId = submitAndAwait(VALID_INVOICE.fileName());
+
+        authorizedGet("/api/validation/batches/" + batchId + "/status")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.batchId").value(batchId))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+    }
+
+    @Test
+    void getBatchStatus_withUnknownBatch_returnsNotFound() throws Exception {
+        authorizedGet("/api/validation/batches/" + UNKNOWN_BATCH_ID + "/status")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Batch not found: " + UNKNOWN_BATCH_ID));
+    }
+
+    @Test
     void getReport_withExistingBatch_returnsPersistedReport() throws Exception {
-        String batchId = validateAndGetBatchId(INVALID_INVOICE.fileName());
+        String batchId = submitAndAwait(INVALID_INVOICE.fileName());
 
         authorizedGet("/api/validation/report/" + batchId)
                 .andExpect(status().isOk())
@@ -249,7 +292,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getBatchesByVendor_returnsBatchesContainingVendor() throws Exception {
-        String batchId = validateAndGetBatchId(VALID_INVOICE.fileName());
+        String batchId = submitAndAwait(VALID_INVOICE.fileName());
 
         authorizedGet("/api/validation/batches/by-vendor?vendorId=" + VALID_INVOICE.sellerTaxId())
                 .andExpect(status().isOk())
@@ -270,7 +313,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getIssuesByInvoice_returnsPersistedIssues() throws Exception {
-        validate(INVALID_INVOICE.fileName()).andExpect(status().isOk());
+        submitAndAwait(INVALID_INVOICE.fileName());
 
         authorizedGet("/api/validation/issues/by-invoice"
                 + "?sellerTaxId=" + INVALID_INVOICE.sellerTaxId()
@@ -287,7 +330,7 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getBatchesByInvoice_returnsBatchesContainingInvoice() throws Exception {
-        String batchId = validateAndGetBatchId(VALID_INVOICE.fileName());
+        String batchId = submitAndAwait(VALID_INVOICE.fileName());
 
         authorizedGet("/api/validation/batches/by-invoice"
                 + "?sellerTaxId=" + VALID_INVOICE.sellerTaxId()
@@ -298,17 +341,55 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data[0].batchId").value(batchId));
     }
 
-    private ResultActions validate(String... fileNames) throws Exception {
-        MockMultipartFile[] files = new MockMultipartFile[fileNames.length];
+    private ResultActions validateAndGetReport(String... fileNames) throws Exception {
+        String batchId = submitAndAwait(fileNames);
 
-        for (int i = 0; i < fileNames.length; i++) {
-            files[i] = invoiceFile(fileNames[i]);
-        }
-
-        return validateFiles(KSEF_FORMAT, files);
+        return authorizedGet("/api/validation/report/" + batchId);
     }
 
-    private ResultActions validateFiles(String format, MockMultipartFile... files) throws Exception {
+    private String submitAndAwait(String... fileNames) throws Exception {
+        return submitFilesAndAwait(invoiceFiles(fileNames));
+    }
+
+    private String submitFilesAndAwait(MockMultipartFile... files) throws Exception {
+        String response = submitFiles(KSEF_FORMAT, files)
+                .andExpect(status().isAccepted())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String batchId = JsonPath.read(response, "$.batchId");
+        awaitCompleted(batchId);
+
+        return batchId;
+    }
+
+    private void awaitCompleted(String batchId) throws Exception {
+        String token = adminToken();
+
+        await().atMost(PROCESSING_TIMEOUT)
+                .pollInterval(POLL_INTERVAL)
+                .until(() -> batchStatus(batchId, token), FINISHED_STATUSES::contains);
+
+        assertThat(batchStatus(batchId, token)).isEqualTo("COMPLETED");
+    }
+
+    private String batchStatus(String batchId, String token) throws Exception {
+        String response = mockMvc.perform(get("/api/validation/batches/" + batchId + "/status")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return JsonPath.read(response, "$.status");
+    }
+
+    private ResultActions submit(String... fileNames) throws Exception {
+        return submitFiles(KSEF_FORMAT, invoiceFiles(fileNames));
+    }
+
+    private ResultActions submitFiles(String format, MockMultipartFile... files) throws Exception {
         var request = multipart("/api/validation/validate");
 
         for (MockMultipartFile file : files) {
@@ -317,17 +398,17 @@ class ValidationIntegrationTest extends AbstractIntegrationTest {
 
         return mockMvc.perform(request
                 .param("format", format)
-                .header("Authorization", "Bearer " + adminToken()));
+                .header("Authorization", bearer(adminToken())));
     }
 
-    private String validateAndGetBatchId(String... fileNames) throws Exception {
-        String response = validate(fileNames)
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+    private MockMultipartFile[] invoiceFiles(String... fileNames) throws Exception {
+        MockMultipartFile[] files = new MockMultipartFile[fileNames.length];
 
-        return JsonPath.read(response, "$.validationBatch.batchId");
+        for (int i = 0; i < fileNames.length; i++) {
+            files[i] = invoiceFile(fileNames[i]);
+        }
+
+        return files;
     }
 
     private VendorEntity createVendor(InvoiceFixture invoice) {
