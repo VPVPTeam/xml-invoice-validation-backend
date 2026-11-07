@@ -1,7 +1,32 @@
+-- TRUNCATE TABLE
+--     validation_issue,
+--     validation_output,
+--     batch_invoice,
+--     batch_vendor,
+--     validation_batch,
+--     business_rule,
+--     vendor
+--     RESTART IDENTITY CASCADE;
+
+DROP TABLE IF EXISTS batch_file;
+DROP TABLE IF EXISTS validation_issue;
+DROP TABLE IF EXISTS validation_output;
+DROP TABLE IF EXISTS batch_invoice;
+DROP TABLE IF EXISTS batch_vendor;
+DROP TABLE IF EXISTS validation_batch;
+DROP TABLE IF EXISTS business_rule;
+DROP TABLE IF EXISTS vendor;
+DROP TABLE IF EXISTS app_user;
+
 CREATE TABLE validation_batch (
                                   id         BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                                   batch_id   VARCHAR(36) NOT NULL UNIQUE,
-                                  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                                  format     VARCHAR(20) NOT NULL,
+                                  status     VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                                  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+                                  CONSTRAINT chk_batch_status
+                                      CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'))
 );
 
 
@@ -23,6 +48,17 @@ CREATE TABLE batch_invoice (
                                    FOREIGN KEY (validation_batch_id) REFERENCES validation_batch (id)
                                        ON DELETE CASCADE,
                                CONSTRAINT uq_batch_invoice UNIQUE (validation_batch_id, invoice_id)
+);
+
+CREATE TABLE batch_file (
+                            id                  BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                            validation_batch_id BIGINT       NOT NULL,
+                            file_name           VARCHAR(255) NOT NULL,
+                            content             BYTEA        NOT NULL,
+
+                            CONSTRAINT fk_batch_file_batch
+                                FOREIGN KEY (validation_batch_id) REFERENCES validation_batch (id)
+                                    ON DELETE CASCADE
 );
 
 CREATE TABLE validation_output (
@@ -52,6 +88,7 @@ CREATE TABLE validation_issue (
                                   stage          VARCHAR(20)  NOT NULL,
                                   rule_key       VARCHAR(100) NOT NULL,
                                   field_path     VARCHAR(100),
+                                  message        TEXT,
 
                                   CONSTRAINT fk_issue_output
                                       FOREIGN KEY (validation_output_id) REFERENCES validation_output (id)
@@ -68,6 +105,7 @@ CREATE INDEX idx_validation_issue_validation_output_id ON validation_issue (vali
 
 CREATE INDEX idx_batch_invoice_invoice_id ON batch_invoice (invoice_id);
 CREATE INDEX idx_batch_vendor_vendor_id   ON batch_vendor  (vendor_id);
+CREATE INDEX idx_batch_file_validation_batch_id ON batch_file (validation_batch_id);
 
 CREATE TABLE vendor (
                         id     BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
